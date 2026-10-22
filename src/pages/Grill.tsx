@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import NaoExiste from '../components/NaoExiste'
 import Stepper from '../components/Stepper'
 import { ApiError, mensagemErro, post } from '../lib/api'
 import { clearWizard, loadWizard, patchWizard, type GrillSessao } from '../lib/wizard'
@@ -55,12 +56,7 @@ export default function Grill() {
 
   let corpo
   if (naoExiste)
-    corpo = (
-      <div role="alert" className="rounded-card bg-superficie p-4 shadow-card">
-        <p>Esta reunião não existe mais no servidor.</p>
-        <button onClick={recomecar} className={`${btn} mt-3 bg-roxo text-white`}>Recomeçar</button>
-      </div>
-    )
+    corpo = <NaoExiste onRecomecar={recomecar} />
   else if (sessao.isPending) corpo = <p role="status">Preparando as perguntas…</p>
   else if (sessao.error)
     corpo = (

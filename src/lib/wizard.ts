@@ -1,3 +1,5 @@
+import type { PlanoAcao } from './plano'
+
 // Estado do wizard no localStorage (spec 6.1). Tudo em try/catch: o storage pode estar indisponível.
 export type Turno = { pergunta: string; recomendacao: string | null; resposta: string | null }
 export type GrillSessao = {
@@ -14,8 +16,9 @@ export type WizardState = {
   ataMd: string
   sessaoId: string | null
   grill: GrillSessao | null
-  // ponytail: tipados quando os passos de plano e issues existirem (PlanoAcao, issues)
-  plano: unknown | null
+  plano: PlanoAcao | null
+  problemas?: string[] // textos de p1…pN, para "Problemas sem ação"
+  // ponytail: tipar quando o passo de issues existir
   issues: unknown | null
 }
 

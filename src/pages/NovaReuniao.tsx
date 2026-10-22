@@ -46,7 +46,7 @@ export default function NovaReuniao() {
     onSuccess: (r) => {
       const s: WizardState = {
         reuniaoId: r.reuniao_id, ataPath: r.ata_path, ataMd: r.ata_md,
-        sessaoId: null, grill: null, plano: null, issues: null,
+        sessaoId: null, grill: null, plano: null, issues: null, problemas: problemasOk,
       }
       saveWizard(s)
       setCriada(s)
