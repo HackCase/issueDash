@@ -3,8 +3,8 @@ import { useState, type KeyboardEvent } from 'react'
 import Markdown from 'react-markdown'
 import { Link, useNavigate } from 'react-router-dom'
 import Stepper from '../components/Stepper'
-import { mensagemErro, post } from '../lib/api'
-import { clearWizard, loadWizard, reuniaoIdDe, saveWizard, wizardEmAndamento, type WizardState } from '../lib/wizard'
+import { mensagemErro, post, temDetalhe } from '../lib/api'
+import { clearWizard, loadWizard, reuniaoIdDe, saveWizard, rotaAtual, wizardEmAndamento, type WizardState } from '../lib/wizard'
 
 type Criada = { reuniao_id: string; ata_path: string; ata_md: string }
 
@@ -102,7 +102,7 @@ export default function NovaReuniao() {
       {andamento && (
         <div role="status" className="mb-6 flex flex-wrap items-center gap-3 rounded-card bg-amarelo p-4 text-roxo-escuro">
           <span className="flex-1">Há uma reunião em andamento: <strong>{andamento.reuniaoId}</strong></span>
-          <Link to={`/reunioes/${andamento.reuniaoId}/grill`} className={`${btn} bg-roxo text-white`}>Continuar reunião</Link>
+          <Link to={rotaAtual(andamento)} className={`${btn} bg-roxo text-white`}>Continuar reunião</Link>
           <button
             onClick={() => { clearWizard(andamento.reuniaoId); setAndamento(null) }}
             className={`${btn} border border-roxo-escuro`}
@@ -172,7 +172,12 @@ export default function NovaReuniao() {
           {chars < MIN_CHARS && ' — descreva melhor a reunião antes de gerar.'}
         </p>
 
-        {gerar.isError && <p role="alert" className="text-erro">{mensagemErro(gerar.error)}</p>}
+        {gerar.isError && (
+          <div role="alert" className="text-erro">
+            <p>{mensagemErro(gerar.error)}</p>
+            {temDetalhe(gerar.error) && <details className="text-sm"><summary>Detalhes técnicos</summary>{gerar.error.detalhe}</details>}
+          </div>
+        )}
         {gerar.isPending && <p role="status">Gerando a ata… pode levar até um minuto.</p>}
 
         <button type="submit" disabled={gerar.isPending} className={`${btn} bg-ambar font-semibold text-roxo-escuro`}>

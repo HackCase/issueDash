@@ -20,7 +20,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: { 'Content-Type': 'application/json', ...init?.headers },
     })
-  } catch {
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError'))
+      throw new ApiError(0, 'timeout', 'A API demorou demais para responder. Tente de novo.')
     throw new ApiError(0, 'rede', `Não foi possível falar com a API em ${API_URL}`)
   }
   if (!res.ok) {
@@ -37,10 +39,24 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export const post = <T,>(path: string, body?: unknown, init?: RequestInit) =>
   api<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), ...init })
 
-/** Texto amigável por erro (spec 9). Só o que as telas já usam; ampliar com os próximos passos. */
+/** Texto amigável por erro (spec 9). O `detalhe` bruto fica para o bloco "Detalhes técnicos". */
 export function mensagemErro(e: unknown): string {
   if (!(e instanceof ApiError)) return 'Algo deu errado.'
-  if (e.erro === 'entrada_insuficiente') return 'Descreva melhor a reunião (mín. 30 caracteres).'
-  if (e.status === 502) return 'A IA falhou. Tentar de novo.'
-  return e.status === 0 ? e.detalhe : `${e.detalhe} (${e.status})`
+  switch (e.erro) {
+    case 'entrada_insuficiente': return 'Descreva melhor a reunião (mín. 30 caracteres).'
+    case 'entrada_invalida': return 'Alguns campos estão fora do formato esperado.'
+    case 'resposta_vazia': return 'Escreva uma resposta ou aceite a sugestão.'
+    case 'plano_invalido': return 'O plano não atende às regras da API.'
+    case 'grill_concluido': return 'A entrevista já foi concluída.'
+    case 'grill_em_andamento': return 'Conclua o grill antes de gerar o plano.'
+    case 'plano_aprovado': return 'O plano já foi aprovado e não pode mais ser editado.'
+    case 'sem_banco': return 'Métricas indisponíveis: o banco de dados não está configurado.'
+    case 'ata_invalida': case 'saida_invalida': case 'falha_externa': return 'A IA falhou. Tentar de novo.'
+  }
+  if (e.status === 0) return e.detalhe
+  return e.status === 502 ? 'A IA falhou. Tentar de novo.' : `Erro ${e.status}: ${e.detalhe}`
 }
+
+/** Erros cujo `detalhe` vale a pena mostrar em bloco recolhível. */
+export const temDetalhe = (e: unknown): e is ApiError =>
+  e instanceof ApiError && ['entrada_invalida', 'plano_invalido'].includes(e.erro) && !!e.detalhe

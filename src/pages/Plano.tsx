@@ -31,7 +31,11 @@ export default function Plano() {
   }
   const aoErrar = (e: Error) => {
     if (!(e instanceof ApiError)) return
-    if (e.status === 404 && e.erro !== 'plano_nao_encontrado') setPerdido(true)
+    if (e.status === 404) setPerdido(true)
+    if (e.erro === 'plano_aprovado') {
+      setSalvo((p) => p && { ...p, status: 'aprovado' })
+      setRascunho((p) => p && { ...p, status: 'aprovado' })
+    }
     if (e.erro === 'grill_em_andamento') navigate(`/reunioes/${reuniaoId}/grill`)
   }
 
