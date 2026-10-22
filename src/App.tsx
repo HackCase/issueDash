@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Grill from './pages/Grill'
 import Plano from './pages/Plano'
+import Issues from './pages/Issues'
 import NovaReuniao from './pages/NovaReuniao'
 
 const queryClient = new QueryClient()
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/reunioes/nova" element={<NovaReuniao />} />
             <Route path="/reunioes/:reuniaoId/grill" element={<Grill />} />
             <Route path="/reunioes/:reuniaoId/plano" element={<Plano />} />
+            <Route path="/reunioes/:reuniaoId/issues" element={<Issues />} />
           </Route>
         </Routes>
       </BrowserRouter>

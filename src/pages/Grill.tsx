@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import NaoExiste from '../components/NaoExiste'
 import Stepper from '../components/Stepper'
@@ -15,6 +15,8 @@ export default function Grill() {
   const chave = ['grill', reuniaoId]
   const [resposta, setResposta] = useState('')
   const [tentou, setTentou] = useState(false)
+  const pergunta = useRef<HTMLParagraphElement>(null)
+  const respondeu = useRef(false)
 
   // POST idempotente: devolve a sessão existente com todos os turnos (retomada após reload).
   const sessao = useQuery({
@@ -36,6 +38,7 @@ export default function Grill() {
     onSuccess: (nova) => {
       qc.setQueryData(chave, nova)
       setResposta('')
+      respondeu.current = true
       setTentou(false)
     },
     // 409 grill_concluido: a sessão já terminou no servidor; recarrega para mostrar "Entrevista concluída".
@@ -44,12 +47,20 @@ export default function Grill() {
     },
   })
 
+  // Leva o foco à nova pergunta depois de responder (leitor de tela / teclado).
+  useEffect(() => {
+    if (respondeu.current) {
+      respondeu.current = false
+      pergunta.current?.focus()
+    }
+  }, [s?.turnos.length])
+
   function recomecar() {
     clearWizard(reuniaoId)
     navigate('/reunioes/nova')
   }
 
-  const naoExiste = !loadWizard(reuniaoId) || (sessao.error instanceof ApiError && sessao.error.status === 404)
+  const naoExiste = !loadWizard(reuniaoId) || [sessao.error, responder.error].some((e) => e instanceof ApiError && e.status === 404)
   const atual = s?.turnos.find((t) => t.resposta === null)
   const concluida = s?.status === 'concluida'
   const vazia = !resposta.trim()
@@ -94,7 +105,7 @@ export default function Grill() {
         ) : (
           atual && (
             <div key={s.turnos.length} aria-busy={responder.isPending} className="rounded-card bg-superficie p-4 shadow-card">
-              <p className="text-lg font-medium">{atual.pergunta}</p>
+              <p ref={pergunta} tabIndex={-1} className="text-lg font-medium">{atual.pergunta}</p>
               {atual.recomendacao && (
                 <div className="mt-3 rounded-ctl bg-amarelo p-3 text-roxo-escuro">
                   <p className="text-sm font-semibold">Sugestão da IA</p>

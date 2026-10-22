@@ -10,6 +10,8 @@ export type GrillSessao = {
   max_turnos: number
 }
 
+export type IssueYaml = { acao_id: string; path: string; conteudo: string }
+
 export type WizardState = {
   reuniaoId: string
   ataPath: string
@@ -18,8 +20,7 @@ export type WizardState = {
   grill: GrillSessao | null
   plano: PlanoAcao | null
   problemas?: string[] // textos de p1…pN, para "Problemas sem ação"
-  // ponytail: tipar quando o passo de issues existir
-  issues: unknown | null
+  issues: IssueYaml[] | null
 }
 
 const chave = (id: string) => `mega.wizard.${id}`
@@ -69,3 +70,7 @@ export function wizardEmAndamento(): WizardState | null {
 /** Mesma regra do backend: data + título minúsculo, sem acento, com hífens. */
 export const reuniaoIdDe = (data: string, titulo: string) =>
   `${data}-${titulo.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`
+
+/** Etapa mais avançada já alcançada, para "Continuar reunião". */
+export const rotaAtual = (s: WizardState) =>
+  `/reunioes/${s.reuniaoId}/${s.issues ? 'issues' : s.plano?.status === 'aprovado' ? 'issues' : s.plano ? 'plano' : 'grill'}`

@@ -52,7 +52,7 @@ export default function ChartCard({
         </table>
       </div>
     )
-  else corpo = <div className="h-64">{children}</div>
+  else corpo = <div className="h-64" role="img" aria-label={`${titulo}. Use "Ver como tabela" para ler os valores.`}>{children}</div>
 
   return (
     <section aria-busy={query.isPending} className={`rounded-card bg-superficie p-4 shadow-card ${className}`}>
