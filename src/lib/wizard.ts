@@ -1,11 +1,20 @@
 // Estado do wizard no localStorage (spec 6.1). Tudo em try/catch: o storage pode estar indisponível.
+export type Turno = { pergunta: string; recomendacao: string | null; resposta: string | null }
+export type GrillSessao = {
+  sessao_id: string
+  reuniao_id: string
+  turnos: Turno[]
+  status: 'em_andamento' | 'concluida'
+  max_turnos: number
+}
+
 export type WizardState = {
   reuniaoId: string
   ataPath: string
   ataMd: string
   sessaoId: string | null
-  // ponytail: tipados quando os passos 2-4 existirem (GrillSessao, PlanoAcao, issues)
-  grill: unknown | null
+  grill: GrillSessao | null
+  // ponytail: tipados quando os passos de plano e issues existirem (PlanoAcao, issues)
   plano: unknown | null
   issues: unknown | null
 }
@@ -29,6 +38,11 @@ export function saveWizard(s: WizardState) {
   } catch {
     /* sem storage: o wizard segue sem retomada */
   }
+}
+
+export function patchWizard(id: string, patch: Partial<WizardState>) {
+  const atual = loadWizard(id)
+  if (atual) saveWizard({ ...atual, ...patch })
 }
 
 export function clearWizard(id: string) {
