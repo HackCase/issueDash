@@ -36,3 +36,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const post = <T,>(path: string, body?: unknown, init?: RequestInit) =>
   api<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), ...init })
+
+/** Texto amigável por erro (spec 9). Só o que as telas já usam; ampliar com os próximos passos. */
+export function mensagemErro(e: unknown): string {
+  if (!(e instanceof ApiError)) return 'Algo deu errado.'
+  if (e.erro === 'entrada_insuficiente') return 'Descreva melhor a reunião (mín. 30 caracteres).'
+  if (e.status === 502) return 'A IA falhou. Tentar de novo.'
+  return e.status === 0 ? e.detalhe : `${e.detalhe} (${e.status})`
+}

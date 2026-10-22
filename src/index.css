@@ -47,3 +47,11 @@ h1, h2, h3 { font-family: var(--font-titulo); color: var(--mega-roxo-escuro); }
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after { animation: none !important; transition: none !important; }
 }
+
+.ata h1, .ata h2, .ata h3 { margin: 1.25em 0 .5em; font-weight: 600; }
+.ata h2 { font-size: 20px; }
+.ata ul { list-style: disc; padding-left: 1.5em; }
+.ata ol { list-style: decimal; padding-left: 1.5em; }
+.ata p, .ata ul, .ata ol { margin: .5em 0; }
+.ata table { border-collapse: collapse; }
+.ata th, .ata td { border: 1px solid var(--borda); padding: .25em .5em; }
