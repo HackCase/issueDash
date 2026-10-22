@@ -1,0 +1,49 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap");
+
+:root {
+  --mega-roxo-escuro: #350053;
+  --mega-roxo: #5608a8;
+  --mega-ambar: #ffb81c;
+  --mega-amarelo: #ffde59;
+  --fundo: #faf7fd;
+  --superficie: #ffffff;
+  --borda: #e4d9f0;
+  --texto: #1f1030;
+  --texto-suave: #6b5a7d;
+  --erro: #c62828;
+  --sucesso: #2e7d32;
+  color-scheme: light; /* tema claro travado (3.3) */
+}
+
+@theme inline {
+  --color-roxo-escuro: var(--mega-roxo-escuro);
+  --color-roxo: var(--mega-roxo);
+  --color-ambar: var(--mega-ambar);
+  --color-amarelo: var(--mega-amarelo);
+  --color-fundo: var(--fundo);
+  --color-superficie: var(--superficie);
+  --color-borda: var(--borda);
+  --color-texto: var(--texto);
+  --color-suave: var(--texto-suave);
+  --color-erro: var(--erro);
+  --color-sucesso: var(--sucesso);
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-titulo: Poppins, Inter, system-ui, sans-serif;
+  --radius-card: 8px;
+  --radius-ctl: 6px;
+  --shadow-card: 0 1px 3px rgba(53, 0, 83, 0.12);
+}
+
+body {
+  background: var(--fundo);
+  color: var(--texto);
+  font: 16px/1.5 var(--sans);
+}
+h1, h2, h3 { font-family: var(--font-titulo); color: var(--mega-roxo-escuro); }
+
+:focus-visible { outline: 2px solid var(--mega-ambar); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation: none !important; transition: none !important; }
+}
