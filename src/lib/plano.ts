@@ -32,12 +32,24 @@ export type Config = {
 }
 
 export const ESTIMATIVAS = [1, 2, 3, 5, 8, 13]
-// valor enviado (sem acento) → texto exibido
-export const PRIORIDADES: [string, string][] = [['baixa', 'baixa'], ['media', 'média'], ['alta', 'alta'], ['urgente', 'urgente']]
-export const SEVERIDADES: [string, string][] = [['baixa', 'baixa'], ['media', 'média'], ['alta', 'alta'], ['critica', 'crítica']]
+
+export const PRIORIDADES: [string, string][] = [['baixa', 'Baixa'], ['media', 'Média'], ['alta', 'Alta'], ['urgente', 'Urgente']]
+export const SEVERIDADES: [string, string][] = [['baixa', 'Baixa'], ['media', 'Média'], ['alta', 'Alta'], ['critica', 'Crítica']]
+
+export const NIVEL_COR: Record<string, string> = {
+  baixa: 'bg-sucesso text-white',
+  media: 'bg-amarelo text-roxo-escuro',
+  alta: 'bg-[#ef6c00] text-white',
+  urgente: 'bg-erro text-white',
+  critica: 'bg-erro text-white',
+}
+
+export const nomeLabel = (l: string) => {
+  const t = l.replace(/^(tipo|diretoria):\s*/, '')
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
 export const rotulo = (lista: [string, string][], v: string) => lista.find(([k]) => k === v)?.[1] ?? v
 
-/** Remove linhas vazias de critérios e justificativas antes de validar/enviar. */
 export function limpar(p: PlanoAcao): PlanoAcao {
   return {
     ...p,
@@ -52,7 +64,6 @@ export function limpar(p: PlanoAcao): PlanoAcao {
   }
 }
 
-/** Mesmas regras que a API revalida (spec 6.4); devolve as violações em texto. `p` já passou por limpar(). */
 export function validar(p: PlanoAcao, cfg: Config, dataReuniao: string, nProblemas: number): string[] {
   const e: string[] = []
   if (p.acoes.length < 1 || p.acoes.length > cfg.max_acoes) e.push(`O plano deve ter de 1 a ${cfg.max_acoes} ações.`)

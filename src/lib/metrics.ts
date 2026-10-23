@@ -11,28 +11,12 @@ export type Resolucao = {
 export type Vazao = { semana: string; abertas: number; fechadas: number };
 export type PorLabel = { label: string; total: number };
 export type Faixa = { faixa: string; total: number };
-export type Revisao = {
-  semana: string;
-  primeira_review_h: number | null;
-  ate_merge_h: number | null;
-};
-export type TaxaMerge = {
-  merged: number;
-  fechados_sem_merge: number;
-  abertos: number;
-};
 
 export const FAIXAS_BACKLOG = [
   "0-7 dias",
   "8-30 dias",
   "31-90 dias",
   "90+ dias",
-];
-export const FAIXAS_PR = [
-  "P (até 50)",
-  "M (51-250)",
-  "G (251-1000)",
-  "GG (1000+)",
 ];
 
 export function useMetric<T>(path: string, days?: number) {
@@ -72,7 +56,7 @@ export const faixas = (rows: Faixa[], ordem: string[]) =>
 
 export const fmtH = (h: number | null | undefined) =>
   h == null
-    ? "—"
+    ? ""
     : h > 48
       ? `${Math.round(h)} h (${Math.round(h / 24)} d)`
       : `${Math.round(h * 10) / 10} h`;

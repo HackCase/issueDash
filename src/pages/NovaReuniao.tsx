@@ -1,85 +1,176 @@
-import { useMutation } from '@tanstack/react-query'
-import { useState, type KeyboardEvent } from 'react'
-import Markdown from 'react-markdown'
-import { Link, useNavigate } from 'react-router-dom'
-import Stepper from '../components/Stepper'
-import { mensagemErro, post, temDetalhe } from '../lib/api'
-import { clearWizard, loadWizard, reuniaoIdDe, saveWizard, rotaAtual, wizardEmAndamento, type WizardState } from '../lib/wizard'
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import Markdown from "react-markdown";
+import { Link, useNavigate } from "react-router-dom";
+import MultiSelect from "../components/MultiSelect";
+import Stepper from "../components/Stepper";
+import { api, mensagemErro, post, temDetalhe } from "../lib/api";
+import type { Config } from "../lib/plano";
+import {
+  clearWizard,
+  loadWizard,
+  reuniaoIdDe,
+  saveWizard,
+  semFrontmatter,
+  rotaAtual,
+  wizardEmAndamento,
+  type WizardState,
+} from "../lib/wizard";
 
-type Criada = { reuniao_id: string; ata_path: string; ata_md: string }
+type Criada = { reuniao_id: string; ata_path: string; ata_md: string };
 
-const MIN_CHARS = 30
-const hoje = () => new Date().toLocaleDateString('sv') // AAAA-MM-DD no fuso local
-const semFrontmatter = (md: string) => md.replace(/^---\n[\s\S]*?\n---\n*/, '')
-const campo = 'w-full rounded-ctl border border-borda bg-superficie px-3 py-2'
-const btn = 'rounded-ctl px-4 py-2 disabled:opacity-60'
+const MIN_CHARS = 30;
+const hoje = () => new Date().toLocaleDateString("sv");
+const paraBr = (iso: string) => iso.split("-").reverse().join("/");
+
+const paraIso = (br: string) => {
+  const [d, m, a] = br.split("/");
+  const iso = `${a}-${m}-${d}`;
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(br) &&
+    (Date.parse(iso) ? new Date(iso).toISOString() : "").startsWith(iso)
+    ? iso
+    : "";
+};
+const mascaraData = (v: string) =>
+  v
+    .replace(/\D/g, "")
+    .slice(0, 8)
+    .replace(/^(\d{2})(\d)/, "$1/$2")
+    .replace(/^(\d{2}\/\d{2})(\d)/, "$1/$2");
+const campo = (erro: unknown) =>
+  `w-full rounded-ctl border bg-superficie px-3 py-2.5 transition focus:outline-none focus:ring-2 ${erro ? "border-erro ring-1 ring-erro focus:ring-erro/40" : "border-borda hover:border-roxo/50 focus:border-roxo focus:ring-roxo/25"}`;
+const rotuloCls = "mb-1 block text-sm font-semibold";
+const dica = "mt-1 text-xs text-suave";
+const cartao = "space-y-5 rounded-card bg-superficie p-5 shadow-card";
+const Erro = ({ id, msg }: { id: string; msg: unknown }) =>
+  msg ? (
+    <p id={id} className="mt-1 text-sm font-medium text-erro">
+      ⚠ {String(msg)}
+    </p>
+  ) : null;
+const Obrigatorio = () => (
+  <span aria-hidden className="text-erro" title="Obrigatório">
+    *
+  </span>
+);
+const btn = "rounded-ctl px-4 py-2 disabled:opacity-60";
 
 export default function NovaReuniao() {
-  const navigate = useNavigate()
-  const [andamento, setAndamento] = useState(wizardEmAndamento)
-  const [titulo, setTitulo] = useState('')
-  const [data, setData] = useState(hoje)
-  const [participantes, setParticipantes] = useState<string[]>([])
-  const [novoNome, setNovoNome] = useState('')
-  const [acompanhamento, setAcompanhamento] = useState('')
-  const [problemas, setProblemas] = useState([''])
-  const [tentou, setTentou] = useState(false)
-  const [criada, setCriada] = useState<WizardState | null>(null)
+  const navigate = useNavigate();
+  const [andamento, setAndamento] = useState(wizardEmAndamento);
+  const [titulo, setTitulo] = useState("");
+  const [dataBr, setDataBr] = useState(() => paraBr(hoje()));
+  const data = paraIso(dataBr);
+  const [participantes, setParticipantes] = useState<string[]>([]);
+  const cfg = useQuery({
+    queryKey: ["config"],
+    queryFn: () => api<Config>("/config"),
+    staleTime: Infinity,
+    retry: false,
+  });
+  const [acompanhamento, setAcompanhamento] = useState("");
+  const [problemas, setProblemas] = useState("- ");
+  const [tentou, setTentou] = useState(false);
+  const [tentativas, setTentativas] = useState(0);
+  const resumo = useRef<HTMLDivElement>(null);
+  const [criada, setCriada] = useState<WizardState | null>(null);
 
-  const problemasOk = problemas.map((p) => p.trim()).filter(Boolean)
-  const chars = acompanhamento.trim().length + problemasOk.join('').length
+  const problemasOk = problemas
+    .split("\n")
+    .map((p) => p.replace(/^\s*[-*•]\s*/, "").trim())
+    .filter(Boolean);
+  const chars = acompanhamento.trim().length + problemasOk.join("").length;
   const erros = {
-    titulo: !titulo.trim() && 'Informe o título.',
-    data: !data && 'Informe a data.',
-    acompanhamento: !acompanhamento.trim() && 'Informe o acompanhamento.',
-    problemas: !problemasOk.length && 'Informe ao menos um problema.',
-  }
-  const invalido = Object.values(erros).some(Boolean)
+    titulo: !titulo.trim() && "Informe o título.",
+    data: !data && "Informe uma data válida (dd/mm/aaaa).",
+    acompanhamento: !acompanhamento.trim() && "Informe o acompanhamento.",
+    problemas: !problemasOk.length && "Informe ao menos um problema.",
+    chars:
+      chars < MIN_CHARS &&
+      `Descreva melhor a reunião: faltam ${MIN_CHARS - chars} caracteres (acompanhamento + problemas).`,
+  };
+  const ids: Record<keyof typeof erros, string> = {
+    titulo: "titulo",
+    data: "data",
+    acompanhamento: "acompanhamento",
+    problemas: "problemas",
+    chars: "acompanhamento",
+  };
+  const invalido = Object.values(erros).some(Boolean);
 
   const gerar = useMutation({
     mutationFn: () =>
       post<Criada>(
-        '/reunioes',
-        { titulo: titulo.trim(), data, participantes, acompanhamento: acompanhamento.trim(), problemas: problemasOk },
-        { signal: AbortSignal.timeout(180_000) }, // LLM: 10–60 s
+        "/reunioes",
+        {
+          titulo: titulo.trim(),
+          data,
+          participantes,
+          acompanhamento: acompanhamento.trim(),
+          problemas: problemasOk,
+        },
+        { signal: AbortSignal.timeout(180_000) },
       ),
     onSuccess: (r) => {
       const s: WizardState = {
-        reuniaoId: r.reuniao_id, ataPath: r.ata_path, ataMd: r.ata_md,
-        sessaoId: null, grill: null, plano: null, issues: null, problemas: problemasOk,
-      }
-      saveWizard(s)
-      setCriada(s)
+        reuniaoId: r.reuniao_id,
+        ataPath: r.ata_path,
+        ataMd: r.ata_md,
+        sessaoId: null,
+        grill: null,
+        plano: null,
+        issues: null,
+        problemas: problemasOk,
+      };
+      saveWizard(s);
+      setCriada(s);
     },
-  })
+  });
 
   function enviar(e: React.FormEvent) {
-    e.preventDefault()
-    setTentou(true)
-    if (invalido || gerar.isPending) return
-    const existente = loadWizard(reuniaoIdDe(data, titulo.trim()))
-    if (existente && (existente.grill || existente.plano) &&
-        !confirm('Esta reunião já tem grill ou plano. Gerar a ata de novo recomeça o fluxo. Continuar?')) return
-    gerar.mutate()
+    e.preventDefault();
+    setTentou(true);
+    if (invalido) setTentativas((n) => n + 1);
+    if (invalido || gerar.isPending) return;
+    const existente = loadWizard(reuniaoIdDe(data, titulo.trim()));
+    if (
+      existente &&
+      (existente.grill || existente.plano) &&
+      !confirm(
+        "Esta reunião já tem grill ou plano. Gerar a ata de novo recomeça o fluxo. Continuar?",
+      )
+    )
+      return;
+    gerar.mutate();
   }
 
-  function addNome() {
-    const n = novoNome.trim()
-    if (n && !participantes.includes(n)) setParticipantes([...participantes, n])
-    setNovoNome('')
+  function teclaProblemas(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    e.preventDefault();
+    const t = e.currentTarget;
+    setProblemas(
+      problemas.slice(0, t.selectionStart) +
+        "\n- " +
+        problemas.slice(t.selectionEnd),
+    );
   }
-  function teclaNome(e: KeyboardEvent) {
-    if (e.key === 'Enter') { e.preventDefault(); addNome() }
-  }
-  const setProblema = (i: number, v: string) => setProblemas(problemas.map((p, j) => (j === i ? v : p)))
-  const erro = (k: keyof typeof erros) => tentou && erros[k]
+  const erro = (k: keyof typeof erros) => tentou && erros[k];
+  useEffect(() => {
+    if (tentativas) resumo.current?.focus();
+  }, [tentativas]);
+  const falhas = (Object.keys(erros) as (keyof typeof erros)[]).filter(
+    (k) => k !== "chars" && erro(k),
+  );
 
   if (criada)
     return (
-      <div className="max-w-3xl">
+      <div>
         <Stepper atual={0} />
         <h1 className="mb-4 text-2xl font-bold">Ata gerada</h1>
-        <p role="status" className="mb-4 rounded-card bg-amarelo p-3 text-roxo-escuro">
+        <p
+          role="status"
+          className="mb-4 rounded-card bg-amarelo p-3 text-roxo-escuro"
+        >
           Ata salva em <code>{criada.ataPath}</code>
         </p>
         <article className="ata rounded-card bg-superficie p-6 shadow-card">
@@ -92,19 +183,32 @@ export default function NovaReuniao() {
           Continuar para o grill
         </button>
       </div>
-    )
+    );
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <Stepper atual={0} />
       <h1 className="mb-4 text-2xl font-bold">Nova reunião</h1>
 
       {andamento && (
-        <div role="status" className="mb-6 flex flex-wrap items-center gap-3 rounded-card bg-amarelo p-4 text-roxo-escuro">
-          <span className="flex-1">Há uma reunião em andamento: <strong>{andamento.reuniaoId}</strong></span>
-          <Link to={rotaAtual(andamento)} className={`${btn} bg-roxo text-white`}>Continuar reunião</Link>
+        <div
+          role="status"
+          className="mb-6 flex flex-wrap items-center gap-3 rounded-card bg-amarelo p-4 text-roxo-escuro"
+        >
+          <span className="flex-1">
+            Há uma reunião em andamento: <strong>{andamento.reuniaoId}</strong>
+          </span>
+          <Link
+            to={rotaAtual(andamento)}
+            className={`${btn} bg-roxo text-white`}
+          >
+            Continuar reunião
+          </Link>
           <button
-            onClick={() => { clearWizard(andamento.reuniaoId); setAndamento(null) }}
+            onClick={() => {
+              clearWizard(andamento.reuniaoId);
+              setAndamento(null);
+            }}
             className={`${btn} border border-roxo-escuro`}
           >
             Começar outra
@@ -112,78 +216,255 @@ export default function NovaReuniao() {
         </div>
       )}
 
-      <form onSubmit={enviar} noValidate className="space-y-5" aria-busy={gerar.isPending}>
-        <div>
-          <label htmlFor="titulo" className="mb-1 block font-medium">Título</label>
-          <input id="titulo" className={campo} value={titulo} onChange={(e) => setTitulo(e.target.value)}
-            aria-describedby="e-titulo" aria-invalid={!!erro('titulo')} />
-          <p id="e-titulo" role="alert" className="text-sm text-erro">{erro('titulo')}</p>
-        </div>
+      <p className="mb-6 text-suave">
+        Descreva o que foi discutido. A IA monta a ata e, em seguida, faz
+        perguntas para fechar o plano de ação.{" "}
+        <span aria-hidden className="text-erro">
+          *
+        </span>{" "}
+        = obrigatório
+      </p>
 
-        <div>
-          <label htmlFor="data" className="mb-1 block font-medium">Data</label>
-          <input id="data" type="date" className={campo} value={data} onChange={(e) => setData(e.target.value)}
-            aria-describedby="e-data" aria-invalid={!!erro('data')} />
-          <p id="e-data" role="alert" className="text-sm text-erro">{erro('data')}</p>
-        </div>
-
-        <div>
-          <label htmlFor="participante" className="mb-1 block font-medium">Participantes (opcional)</label>
-          <input id="participante" className={campo} value={novoNome} placeholder="Nome e Enter"
-            onChange={(e) => setNovoNome(e.target.value)} onKeyDown={teclaNome} onBlur={addNome} />
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {participantes.map((n) => (
-              <li key={n} className="flex items-center gap-1 rounded-full bg-borda px-3 py-1 text-sm">
-                {n}
-                <button type="button" aria-label={`Remover ${n}`} onClick={() => setParticipantes(participantes.filter((x) => x !== n))}>×</button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <label htmlFor="acompanhamento" className="mb-1 block font-medium">Acompanhamento</label>
-          <textarea id="acompanhamento" rows={4} className={campo} value={acompanhamento}
-            onChange={(e) => setAcompanhamento(e.target.value)}
-            aria-describedby="e-acomp" aria-invalid={!!erro('acompanhamento')} />
-          <p id="e-acomp" role="alert" className="text-sm text-erro">{erro('acompanhamento')}</p>
-        </div>
-
-        <fieldset aria-describedby="e-prob">
-          <legend className="mb-1 font-medium">Problemas</legend>
-          {problemas.map((p, i) => (
-            <div key={i} className="mb-2 flex gap-2">
-              <textarea aria-label={`Problema ${i + 1}`} rows={2} className={campo} value={p}
-                onChange={(e) => setProblema(i, e.target.value)} />
-              {problemas.length > 1 && (
-                <button type="button" onClick={() => setProblemas(problemas.filter((_, j) => j !== i))}
-                  className="self-start px-2 py-2 text-erro underline">Remover</button>
-              )}
+      <form
+        onSubmit={enviar}
+        noValidate
+        className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"
+        aria-busy={gerar.isPending}
+      >
+        <div className="space-y-6">
+          {falhas.length > 0 && (
+            <div
+              ref={resumo}
+              tabIndex={-1}
+              role="alert"
+              className="rounded-card border-l-4 border-erro bg-erro/10 p-4"
+            >
+              <p className="font-semibold text-erro">
+                ⚠ Corrija{" "}
+                {falhas.length === 1
+                  ? "o ponto abaixo"
+                  : `os ${falhas.length} pontos abaixo`}{" "}
+                para gerar a ata:
+              </p>
+              <ul className="mt-1 list-disc pl-5">
+                {falhas.map((k) => (
+                  <li key={k}>
+                    <button
+                      type="button"
+                      className="text-left"
+                      onClick={() => document.getElementById(ids[k])?.focus()}
+                    >
+                      {erros[k]}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
-          ))}
-          <button type="button" onClick={() => setProblemas([...problemas, ''])} className="text-roxo underline">
-            Adicionar problema
-          </button>
-          <p id="e-prob" role="alert" className="text-sm text-erro">{erro('problemas')}</p>
-        </fieldset>
+          )}
 
-        <p className={`text-sm ${chars < MIN_CHARS ? 'text-erro' : 'text-suave'}`}>
-          {chars} / {MIN_CHARS} caracteres (acompanhamento + problemas)
-          {chars < MIN_CHARS && ' — descreva melhor a reunião antes de gerar.'}
-        </p>
+          <section className={cartao} aria-labelledby="s-dados">
+            <h2 id="s-dados" className="text-lg font-semibold">
+              1. Dados da reunião
+            </h2>
+            <div className="grid gap-5 sm:grid-cols-[1fr_11rem]">
+              <div>
+                <label htmlFor="titulo" className={rotuloCls}>
+                  Título <Obrigatorio />
+                </label>
+                <input
+                  id="titulo"
+                  autoFocus
+                  placeholder="Ex.: Retrospectiva da sprint 12"
+                  className={campo(erro("titulo"))}
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  aria-describedby={erro("titulo") ? "e-titulo" : undefined}
+                  aria-invalid={!!erro("titulo")}
+                />
+                <Erro id="e-titulo" msg={erro("titulo")} />
+              </div>
+              <div>
+                <label htmlFor="data" className={rotuloCls}>
+                  Data <Obrigatorio />
+                </label>
+                <input
+                  id="data"
+                  inputMode="numeric"
+                  placeholder="dd/mm/aaaa"
+                  maxLength={10}
+                  className={campo(erro("data"))}
+                  value={dataBr}
+                  onChange={(e) => setDataBr(mascaraData(e.target.value))}
+                  aria-describedby={erro("data") ? "e-data" : undefined}
+                  aria-invalid={!!erro("data")}
+                />
+                <Erro id="e-data" msg={erro("data")} />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="participante" className={rotuloCls}>
+                Participantes{" "}
+                <span className="font-normal text-suave">(opcional)</span>
+              </label>
+              <MultiSelect
+                id="participante"
+                opcoes={(cfg.data?.membros ?? []).map((m) => m.nome)}
+                valor={participantes}
+                onChange={setParticipantes}
+                placeholder="Selecione ou busque pelo nome"
+              />
+              <p className={dica}>
+                Quem não está na lista: digite o nome e tecle Enter.
+              </p>
+            </div>
+          </section>
 
-        {gerar.isError && (
-          <div role="alert" className="text-erro">
-            <p>{mensagemErro(gerar.error)}</p>
-            {temDetalhe(gerar.error) && <details className="text-sm"><summary>Detalhes técnicos</summary>{gerar.error.detalhe}</details>}
+          <section className={cartao} aria-labelledby="s-conteudo">
+            <h2 id="s-conteudo" className="text-lg font-semibold">
+              2. O que foi discutido
+            </h2>
+            <div>
+              <label htmlFor="acompanhamento" className={rotuloCls}>
+                Acompanhamento <Obrigatorio />
+              </label>
+              <textarea
+                id="acompanhamento"
+                rows={4}
+                placeholder="Ex.: Das 5 ações da reunião anterior, 3 foram concluídas e 2 seguem em andamento…"
+                className={campo(erro("acompanhamento"))}
+                value={acompanhamento}
+                onChange={(e) => setAcompanhamento(e.target.value)}
+                aria-describedby={`d-acomp${erro("acompanhamento") ? " e-acomp" : ""}`}
+                aria-invalid={!!erro("acompanhamento")}
+              />
+              <p id="d-acomp" className={dica}>
+                Como andam os itens da última reunião.
+              </p>
+              <Erro id="e-acomp" msg={erro("acompanhamento")} />
+            </div>
+            <div>
+              <label htmlFor="problemas" className={rotuloCls}>
+                Problemas levantados <Obrigatorio />
+              </label>
+              <textarea
+                id="problemas"
+                rows={6}
+                className={campo(erro("problemas"))}
+                value={problemas}
+                onChange={(e) => setProblemas(e.target.value)}
+                onKeyDown={teclaProblemas}
+                aria-describedby={`d-prob${erro("problemas") ? " e-prob" : ""}`}
+                aria-invalid={!!erro("problemas")}
+              />
+              <div className="mt-1 flex flex-wrap justify-between gap-2">
+                <p id="d-prob" className="text-xs text-suave">
+                  Um por linha. Enter cria o próximo bullet; Shift+Enter
+                  quebra a linha.
+                </p>
+                <span className="rounded-full bg-amarelo px-2 py-0.5 text-xs font-medium text-roxo-escuro">
+                  {problemasOk.length}{" "}
+                  {problemasOk.length === 1 ? "problema" : "problemas"}
+                </span>
+              </div>
+              <Erro id="e-prob" msg={erro("problemas")} />
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-6">
+          <div
+            ref={falhas.length ? undefined : resumo}
+            tabIndex={-1}
+            role={erro("chars") ? "alert" : undefined}
+            className={cartao}
+          >
+            <h2 className="text-lg font-semibold">Antes de gerar</h2>
+            <ul className="space-y-2 text-sm">
+              {(
+                [
+                  ["titulo", "Título informado"],
+                  ["data", "Data válida"],
+                  ["acompanhamento", "Acompanhamento preenchido"],
+                  ["problemas", "Ao menos 1 problema"],
+                ] as const
+              ).map(([k, t]) => {
+                const ok = !erros[k];
+                return (
+                  <li
+                    key={k}
+                    className={`flex items-center gap-2 ${ok ? "text-sucesso" : erro(k) ? "font-medium text-erro" : "text-suave"}`}
+                  >
+                    <span aria-hidden className="w-4 text-center">
+                      {ok ? "✓" : erro(k) ? "✕" : "○"}
+                    </span>
+                    {t}
+                  </li>
+                );
+              })}
+            </ul>
+            <div>
+              <div className="mb-1 flex justify-between text-sm">
+                <span className={erro("chars") ? "font-medium text-erro" : ""}>
+                  Texto da reunião
+                </span>
+                <span className="text-suave">
+                  {chars} / {MIN_CHARS}
+                </span>
+              </div>
+              <div
+                className="h-2 overflow-hidden rounded-full bg-borda"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={MIN_CHARS}
+                aria-valuenow={Math.min(chars, MIN_CHARS)}
+              >
+                <div
+                  className={`h-full transition-all ${chars >= MIN_CHARS ? "bg-sucesso" : erro("chars") ? "bg-erro" : "bg-roxo"}`}
+                  style={{ width: `${Math.min(100, (chars / MIN_CHARS) * 100)}%` }}
+                />
+              </div>
+              <p
+                className={`mt-1 text-xs ${erro("chars") ? "text-erro" : "text-suave"}`}
+              >
+                {erro("chars")
+                  ? erros.chars
+                  : "Mínimo somando acompanhamento e problemas."}
+              </p>
+            </div>
+
+            {gerar.isError && (
+              <div
+                role="alert"
+                className="rounded-ctl border-l-4 border-erro bg-erro/10 p-3 text-sm"
+              >
+                <p className="font-semibold text-erro">
+                  ⚠ Não foi possível gerar a ata
+                </p>
+                <p>{mensagemErro(gerar.error)}</p>
+                {temDetalhe(gerar.error) && (
+                  <details>
+                    <summary>Detalhes técnicos</summary>
+                    {gerar.error.detalhe}
+                  </details>
+                )}
+              </div>
+            )}
+            {gerar.isPending && (
+              <p role="status" className="text-sm">
+                Gerando a ata… pode levar até um minuto.
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={gerar.isPending}
+              className={`${btn} w-full bg-ambar font-semibold text-roxo-escuro hover:brightness-95`}
+            >
+              {gerar.isPending ? "Gerando…" : "Gerar ata"}
+            </button>
           </div>
-        )}
-        {gerar.isPending && <p role="status">Gerando a ata… pode levar até um minuto.</p>}
-
-        <button type="submit" disabled={gerar.isPending} className={`${btn} bg-ambar font-semibold text-roxo-escuro`}>
-          {gerar.isPending ? 'Gerando…' : 'Gerar ata'}
-        </button>
+        </aside>
       </form>
     </div>
-  )
+  );
 }

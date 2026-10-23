@@ -12,7 +12,6 @@ export class ApiError extends Error {
   }
 }
 
-/** Fetch JSON; falhas do núcleo viram ApiError { erro, detalhe } (spec 9). */
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response
   try {
@@ -23,7 +22,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   } catch (e) {
     if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError'))
       throw new ApiError(0, 'timeout', 'A API demorou demais para responder. Tente de novo.')
-    throw new ApiError(0, 'rede', `Não foi possível falar com a API em ${API_URL}`)
+    throw new ApiError(0, 'rede', 'Não foi possível conectar à API. Verifique se ela está em execução.')
   }
   if (!res.ok) {
     const body = await res.json().catch(() => null)
@@ -39,12 +38,13 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export const post = <T,>(path: string, body?: unknown, init?: RequestInit) =>
   api<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), ...init })
 
-/** Texto amigável por erro (spec 9). O `detalhe` bruto fica para o bloco "Detalhes técnicos". */
 export function mensagemErro(e: unknown): string {
   if (!(e instanceof ApiError)) return 'Algo deu errado.'
   switch (e.erro) {
     case 'entrada_insuficiente': return 'Descreva melhor a reunião (mín. 30 caracteres).'
     case 'entrada_invalida': return 'Alguns campos estão fora do formato esperado.'
+    case 'respostas_incompletas': return 'Responda todas as perguntas (ou use a sugestão) antes de enviar.'
+    case 'pergunta_desconhecida': return 'A rodada mudou. Recarregue a página.'
     case 'resposta_vazia': return 'Escreva uma resposta ou aceite a sugestão.'
     case 'plano_invalido': return 'O plano não atende às regras da API.'
     case 'grill_concluido': return 'A entrevista já foi concluída.'
@@ -57,6 +57,5 @@ export function mensagemErro(e: unknown): string {
   return e.status === 502 ? 'A IA falhou. Tentar de novo.' : `Erro ${e.status}: ${e.detalhe}`
 }
 
-/** Erros cujo `detalhe` vale a pena mostrar em bloco recolhível. */
 export const temDetalhe = (e: unknown): e is ApiError =>
   e instanceof ApiError && ['entrada_invalida', 'plano_invalido'].includes(e.erro) && !!e.detalhe

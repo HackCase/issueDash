@@ -59,13 +59,12 @@ export default function Plano() {
     onError: aoErrar,
   })
 
-  // Sem plano no estado: gera o rascunho uma vez (a chamada cria outro rascunho, então não repetir).
   useEffect(() => {
     if (wiz && !salvo && !iniciou.current) {
       iniciou.current = true
       gerar.mutate()
     }
-  }, []) // eslint-disable-line
+  }, [])
 
   const recomecar = () => {
     clearWizard(reuniaoId)
@@ -155,7 +154,10 @@ export default function Plano() {
                 .filter((id) => !rascunho.acoes.some((a) => a.problema_origem === id))
                 .map((id) => (
                   <li key={id} className="rounded-card bg-superficie p-4 shadow-card">
-                    <p className="text-sm text-suave">Problema {id}: {problemas[Number(id.slice(1)) - 1] ?? '(texto indisponível)'}</p>
+                    <p className="flex items-start gap-2 text-sm text-suave">
+                      <span aria-label={`Problema ${id}`} className="flex size-6 shrink-0 items-center justify-center rounded-full bg-amarelo text-xs font-semibold text-roxo-escuro">{id.replace(/\D/g, '')}</span>
+                      {problemas[Number(id.slice(1)) - 1] ?? '(texto indisponível)'}
+                    </p>
                     <label htmlFor={`j-${id}`} className="mt-2 block text-sm font-medium">Justificativa</label>
                     <textarea
                       id={`j-${id}`} rows={2} disabled={aprovado}
@@ -196,7 +198,7 @@ export default function Plano() {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <Stepper atual={2} reuniaoId={reuniaoId} />
       <h1 className="mb-4 text-2xl font-bold">Plano de ação</h1>
       {corpo}
