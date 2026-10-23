@@ -13,7 +13,7 @@ import {
 } from "../lib/wizard";
 
 const btn = "rounded-ctl px-4 py-2 disabled:opacity-60";
-const LLM = () => ({ signal: AbortSignal.timeout(180_000) }); // LLM: 5–60 s, backend repete em 429/503
+const LLM = () => ({ signal: AbortSignal.timeout(180_000) });
 type Corpo = {
   respostas?: { id: string; resposta: string }[];
   aceitar_recomendacoes?: boolean;
@@ -205,7 +205,6 @@ export default function Grill() {
   const respondeu = useRef(false);
   const wiz = loadWizard(reuniaoId);
 
-  // POST idempotente: devolve a sessão existente com todas as rodadas (retomada após reload).
   const sessao = useQuery({
     queryKey: chave,
     queryFn: () =>
@@ -227,14 +226,13 @@ export default function Grill() {
       qc.setQueryData(chave, nova);
       respondeu.current = true;
     },
-    // 409 grill_concluido: a sessão já terminou no servidor; recarrega para mostrar "Entrevista concluída".
+
     onError: (e) => {
       if (e instanceof ApiError && e.erro === "grill_concluido")
         sessao.refetch();
     },
   });
 
-  // Leva o foco ao topo da rodada nova (leitor de tela / teclado).
   useEffect(() => {
     if (respondeu.current) {
       respondeu.current = false;

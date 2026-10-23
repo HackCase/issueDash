@@ -20,9 +20,9 @@ import {
 type Criada = { reuniao_id: string; ata_path: string; ata_md: string };
 
 const MIN_CHARS = 30;
-const hoje = () => new Date().toLocaleDateString("sv"); // AAAA-MM-DD no fuso local
+const hoje = () => new Date().toLocaleDateString("sv");
 const paraBr = (iso: string) => iso.split("-").reverse().join("/");
-// dd/mm/aaaa -> AAAA-MM-DD; "" se incompleta ou inexistente (ex.: 31/02)
+
 const paraIso = (br: string) => {
   const [d, m, a] = br.split("/");
   const iso = `${a}-${m}-${d}`;
@@ -109,7 +109,7 @@ export default function NovaReuniao() {
           acompanhamento: acompanhamento.trim(),
           problemas: problemasOk,
         },
-        { signal: AbortSignal.timeout(180_000) }, // LLM: 10–60 s
+        { signal: AbortSignal.timeout(180_000) },
       ),
     onSuccess: (r) => {
       const s: WizardState = {

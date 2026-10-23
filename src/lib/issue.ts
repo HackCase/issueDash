@@ -1,5 +1,3 @@
-// Leitor mínimo do YAML de issue (formato fixo gerado pela API: escalares, listas e um nível de mapa).
-// ponytail: não é um parser YAML completo; se o formato da API ganhar aninhamento, trocar por uma lib.
 export type IssueView = {
   titulo: string
   corpo: string
@@ -11,7 +9,7 @@ export type IssueView = {
 
 const escalar = (v: string) => {
   v = v.trim()
-  if (v.startsWith('"')) try { return JSON.parse(v) as string } catch { /* cai no retorno cru */ }
+  if (v.startsWith('"')) try { return JSON.parse(v) as string } catch {}
   return v.startsWith("'") && v.endsWith("'") ? v.slice(1, -1).replace(/''/g, "'") : v
 }
 

@@ -13,7 +13,7 @@
   --texto-suave: #6b5a7d;
   --erro: #c62828;
   --sucesso: #2e7d32;
-  color-scheme: light; /* tema claro travado (3.3) */
+  color-scheme: light;
 }
 
 @theme inline {

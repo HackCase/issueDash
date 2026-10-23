@@ -97,10 +97,9 @@ export default function Issues() {
     onSuccess: (r) => { setIssues(r); patchWizard(reuniaoId, { issues: r }) },
   })
 
-  // Uma chamada por montagem da tela (a rota é segura de repetir, mas não precisa ser automática).
   useEffect(() => {
     if (wiz && !iniciou.current) { iniciou.current = true; gerar.mutate() }
-  }, []) // eslint-disable-line
+  }, [])
 
   const recomecar = () => { clearWizard(reuniaoId); navigate('/reunioes/nova') }
   const perdido = gerar.error instanceof ApiError && gerar.error.status === 404

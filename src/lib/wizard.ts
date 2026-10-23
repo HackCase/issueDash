@@ -62,7 +62,7 @@ export function clearWizard(id: string) {
     localStorage.removeItem(chave(id));
     if (localStorage.getItem(ULTIMA) === id) localStorage.removeItem(ULTIMA);
   } catch {
-    /* idem */
+
   }
 }
 

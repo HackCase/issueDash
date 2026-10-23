@@ -9,7 +9,6 @@ const PASSOS = [
   { nome: 'Issues', rota: (id: string) => `/reunioes/${id}/issues` },
 ]
 
-/** Maior passo já alcançado (0-based) pelo wizard salvo; todos até ele podem ser revisitados. */
 function alcancado(id?: string) {
   const w = id ? loadWizard(id) : null
   if (!w) return -1
@@ -18,7 +17,6 @@ function alcancado(id?: string) {
   return 1
 }
 
-/** Breadcrumb navegável compacto. `atual` é 0-based. Passos já alcançados linkam (inclusive à frente do atual). */
 export default function Stepper({ atual, reuniaoId }: { atual: number; reuniaoId?: string }) {
   const max = Math.max(alcancado(reuniaoId), atual)
   return (

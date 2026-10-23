@@ -5,7 +5,6 @@ const Avatar = ({ nome, cls = 'size-7 text-xs' }: { nome: string; cls?: string }
   <span aria-hidden className={`flex shrink-0 items-center justify-center rounded-full bg-roxo font-semibold text-white ${cls}`}>{iniciais(nome)}</span>
 )
 
-/** Multi-seleção com busca. ↑/↓ navegam, Enter marca, Backspace remove o último, Esc fecha. Texto fora da lista vira "Adicionar …". */
 export default function MultiSelect({ id, opcoes, valor, onChange, placeholder }: {
   id: string
   opcoes: string[]

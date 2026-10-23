@@ -32,7 +32,7 @@ import {
 const ROXO = "#5608A8",
   AMBAR = "#FFB81C",
   ESCURO = "#350053",
-  IDADE = ["#2E7D32", "#FFDE59", "#EF6C00", "#C62828"], // 0-7 → 90+ dias
+  IDADE = ["#2E7D32", "#FFDE59", "#EF6C00", "#C62828"],
   GRADE = "#E4D9F0",
   EIXO = "#6B5A7D";
 const eixo = { stroke: EIXO, fontSize: 12 };

@@ -59,13 +59,12 @@ export default function Plano() {
     onError: aoErrar,
   })
 
-  // Sem plano no estado: gera o rascunho uma vez (a chamada cria outro rascunho, então não repetir).
   useEffect(() => {
     if (wiz && !salvo && !iniciou.current) {
       iniciou.current = true
       gerar.mutate()
     }
-  }, []) // eslint-disable-line
+  }, [])
 
   const recomecar = () => {
     clearWizard(reuniaoId)

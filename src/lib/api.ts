@@ -14,7 +14,6 @@ export class ApiError extends Error {
   }
 }
 
-/** Fetch JSON; falhas do núcleo viram ApiError { erro, detalhe } (spec 9). */
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   if (MOCK) {
     const m = await mock(path, init)
@@ -45,7 +44,6 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export const post = <T,>(path: string, body?: unknown, init?: RequestInit) =>
   api<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), ...init })
 
-/** Texto amigável por erro (spec 9). O `detalhe` bruto fica para o bloco "Detalhes técnicos". */
 export function mensagemErro(e: unknown): string {
   if (!(e instanceof ApiError)) return 'Algo deu errado.'
   switch (e.erro) {
@@ -65,6 +63,5 @@ export function mensagemErro(e: unknown): string {
   return e.status === 502 ? 'A IA falhou. Tentar de novo.' : `Erro ${e.status}: ${e.detalhe}`
 }
 
-/** Erros cujo `detalhe` vale a pena mostrar em bloco recolhível. */
 export const temDetalhe = (e: unknown): e is ApiError =>
   e instanceof ApiError && ['entrada_invalida', 'plano_invalido'].includes(e.erro) && !!e.detalhe
