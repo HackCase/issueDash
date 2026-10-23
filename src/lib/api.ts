@@ -1,5 +1,3 @@
-import { MOCK, mock } from './mock'
-
 export const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 export class ApiError extends Error {
@@ -15,10 +13,6 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  if (MOCK) {
-    const m = await mock(path, init)
-    if (m !== null) return m as T
-  }
   let res: Response
   try {
     res = await fetch(API_URL + path, {
