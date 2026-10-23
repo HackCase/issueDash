@@ -23,7 +23,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   } catch (e) {
     if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError'))
       throw new ApiError(0, 'timeout', 'A API demorou demais para responder. Tente de novo.')
-    throw new ApiError(0, 'rede', `Não foi possível falar com a API em ${API_URL}`)
+    throw new ApiError(0, 'rede', 'Não foi possível conectar à API. Verifique se ela está em execução.')
   }
   if (!res.ok) {
     const body = await res.json().catch(() => null)

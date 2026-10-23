@@ -28,12 +28,7 @@ export default function ChartCard({
   else if (semBanco) corpo = <p className="py-16 text-center text-suave">Indisponível.</p>
   else if (err)
     corpo = (
-      <div role="alert" className="py-10 text-center">
-        <p className="text-erro">{err.message}</p>
-        <button onClick={() => query.refetch()} className="mt-3 rounded-ctl bg-roxo px-4 py-2 text-white">
-          Tentar de novo
-        </button>
-      </div>
+      <p className="py-16 text-center text-suave">Não foi possível carregar este gráfico.</p>
     )
   else if (vazio) corpo = <p className="py-16 text-center text-suave">Ainda não há dados coletados. Rode o coletor.</p>
   else if (verTabela)

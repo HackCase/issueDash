@@ -84,16 +84,9 @@ export default function Dashboard() {
   const revisao = useMetric<Revisao[]>("/pulls/review-time", days);
   const tamanho = useMetric<Faixa[]>("/pulls/size-distribution");
 
-  const semBanco = [
-    resumo,
-    merge,
-    resolucao,
-    vazao,
-    porLabel,
-    backlog,
-    revisao,
-    tamanho,
-  ].some((q) => q.error instanceof ApiError && q.error.erro === "sem_banco");
+  const todas = [resumo, merge, resolucao, vazao, porLabel, backlog, revisao, tamanho];
+  const comErro = todas.filter((q) => q.isError && !(q.error instanceof ApiError && q.error.erro === "sem_banco"));
+  const semBanco = todas.some((q) => q.error instanceof ApiError && q.error.erro === "sem_banco");
 
   const g1 = semanas(resolucao.data ?? [], {
     fechadas: 0,
@@ -139,6 +132,29 @@ export default function Dashboard() {
           </select>
         </label>
       </div>
+
+      {comErro.length > 0 && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-3 rounded-card border-l-4 border-erro bg-erro/10 p-4"
+        >
+          <span aria-hidden className="text-xl text-erro">⚠</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-erro">Erro ao comunicar com a API</p>
+            <p className="text-sm">
+              {comErro.length === todas.length
+                ? "Nenhuma métrica foi carregada."
+                : `${comErro.length} de ${todas.length} métricas não foram carregadas.`}
+            </p>
+          </div>
+          <button
+            onClick={() => comErro.forEach((q) => q.refetch())}
+            className="rounded-ctl bg-erro px-4 py-2 font-semibold text-white"
+          >
+            Tentar de novo
+          </button>
+        </div>
+      )}
 
       {semBanco && (
         <p
