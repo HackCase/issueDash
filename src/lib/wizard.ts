@@ -1,9 +1,8 @@
 import type { PlanoAcao } from "./plano";
 
-// Estado do wizard no localStorage (spec 6.1). Tudo em try/catch: o storage pode estar indisponível.
 export type Pergunta = {
   id: string;
-  problema_id: string | null; // "p1"… ou null = pergunta geral
+  problema_id: string | null;
   pergunta: string;
   recomendacao: string | null;
   resposta: string | null;
@@ -12,7 +11,7 @@ export type Rodada = { perguntas: Pergunta[] };
 export type GrillSessao = {
   sessao_id: string;
   reuniao_id: string;
-  rodadas: Rodada[]; // a última é a em aberto quando status = em_andamento
+  rodadas: Rodada[];
   status: "em_andamento" | "concluida";
   max_rodadas: number;
 };
@@ -26,7 +25,7 @@ export type WizardState = {
   sessaoId: string | null;
   grill: GrillSessao | null;
   plano: PlanoAcao | null;
-  problemas?: string[]; // textos de p1…pN, para "Problemas sem ação"
+  problemas?: string[];
   issues: IssueYaml[] | null;
 };
 
@@ -50,9 +49,7 @@ export function saveWizard(s: WizardState) {
   try {
     localStorage.setItem(chave(s.reuniaoId), JSON.stringify(s));
     localStorage.setItem(ULTIMA, s.reuniaoId);
-  } catch {
-    /* sem storage: o wizard segue sem retomada */
-  }
+  } catch {}
 }
 
 export function patchWizard(id: string, patch: Partial<WizardState>) {
@@ -78,7 +75,6 @@ export function wizardEmAndamento(): WizardState | null {
   }
 }
 
-/** Mesma regra do backend: data + título minúsculo, sem acento, com hífens. */
 export const reuniaoIdDe = (data: string, titulo: string) =>
   `${data}-${titulo
     .normalize("NFD")
@@ -87,6 +83,8 @@ export const reuniaoIdDe = (data: string, titulo: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")}`;
 
-/** Etapa mais avançada já alcançada, para "Continuar reunião". */
 export const rotaAtual = (s: WizardState) =>
   `/reunioes/${s.reuniaoId}/${s.issues ? "issues" : s.plano?.status === "aprovado" ? "issues" : s.plano ? "plano" : "grill"}`;
+
+export const semFrontmatter = (md: string) =>
+  md.replace(/^---\n[\s\S]*?\n---\n*/, "");
