@@ -72,7 +72,7 @@ export const faixas = (rows: Faixa[], ordem: string[]) =>
 
 export const fmtH = (h: number | null | undefined) =>
   h == null
-    ? "—"
+    ? ""
     : h > 48
       ? `${Math.round(h)} h (${Math.round(h / 24)} d)`
       : `${Math.round(h * 10) / 10} h`;
