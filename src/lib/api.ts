@@ -45,6 +45,8 @@ export function mensagemErro(e: unknown): string {
   switch (e.erro) {
     case 'entrada_insuficiente': return 'Descreva melhor a reunião (mín. 30 caracteres).'
     case 'entrada_invalida': return 'Alguns campos estão fora do formato esperado.'
+    case 'respostas_incompletas': return 'Responda todas as perguntas (ou use a sugestão) antes de enviar.'
+    case 'pergunta_desconhecida': return 'A rodada mudou. Recarregue a página.'
     case 'resposta_vazia': return 'Escreva uma resposta ou aceite a sugestão.'
     case 'plano_invalido': return 'O plano não atende às regras da API.'
     case 'grill_concluido': return 'A entrevista já foi concluída.'
