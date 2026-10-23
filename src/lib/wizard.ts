@@ -1,58 +1,69 @@
-import type { PlanoAcao } from './plano'
+import type { PlanoAcao } from "./plano";
 
 // Estado do wizard no localStorage (spec 6.1). Tudo em try/catch: o storage pode estar indisponível.
-export type Turno = { pergunta: string; recomendacao: string | null; resposta: string | null }
+export type Pergunta = {
+  id: string;
+  problema_id: string | null; // "p1"… ou null = pergunta geral
+  pergunta: string;
+  recomendacao: string | null;
+  resposta: string | null;
+};
+export type Rodada = { perguntas: Pergunta[] };
 export type GrillSessao = {
-  sessao_id: string
-  reuniao_id: string
-  turnos: Turno[]
-  status: 'em_andamento' | 'concluida'
-  max_turnos: number
-}
+  sessao_id: string;
+  reuniao_id: string;
+  rodadas: Rodada[]; // a última é a em aberto quando status = em_andamento
+  status: "em_andamento" | "concluida";
+  max_rodadas: number;
+};
 
-export type IssueYaml = { acao_id: string; path: string; conteudo: string }
+export type IssueYaml = { acao_id: string; path: string; conteudo: string };
 
 export type WizardState = {
-  reuniaoId: string
-  ataPath: string
-  ataMd: string
-  sessaoId: string | null
-  grill: GrillSessao | null
-  plano: PlanoAcao | null
-  problemas?: string[] // textos de p1…pN, para "Problemas sem ação"
-  issues: IssueYaml[] | null
-}
+  reuniaoId: string;
+  ataPath: string;
+  ataMd: string;
+  sessaoId: string | null;
+  grill: GrillSessao | null;
+  plano: PlanoAcao | null;
+  problemas?: string[]; // textos de p1…pN, para "Problemas sem ação"
+  issues: IssueYaml[] | null;
+};
 
-const chave = (id: string) => `mega.wizard.${id}`
-const ULTIMA = 'mega.wizard.ultima'
+const chave = (id: string) => `mega.wizard.${id}`;
+const ULTIMA = "mega.wizard.ultima";
 
 export function loadWizard(id: string): WizardState | null {
   try {
-    const raw = localStorage.getItem(chave(id))
-    return raw ? (JSON.parse(raw) as WizardState) : null
+    const raw = localStorage.getItem(chave(id));
+    if (!raw) return null;
+    const w = JSON.parse(raw) as WizardState;
+    if (w.grill && !w.grill.rodadas)
+      return { ...w, grill: null, sessaoId: null };
+    return w;
   } catch {
-    return null
+    return null;
   }
 }
 
 export function saveWizard(s: WizardState) {
   try {
-    localStorage.setItem(chave(s.reuniaoId), JSON.stringify(s))
-    localStorage.setItem(ULTIMA, s.reuniaoId)
+    localStorage.setItem(chave(s.reuniaoId), JSON.stringify(s));
+    localStorage.setItem(ULTIMA, s.reuniaoId);
   } catch {
     /* sem storage: o wizard segue sem retomada */
   }
 }
 
 export function patchWizard(id: string, patch: Partial<WizardState>) {
-  const atual = loadWizard(id)
-  if (atual) saveWizard({ ...atual, ...patch })
+  const atual = loadWizard(id);
+  if (atual) saveWizard({ ...atual, ...patch });
 }
 
 export function clearWizard(id: string) {
   try {
-    localStorage.removeItem(chave(id))
-    if (localStorage.getItem(ULTIMA) === id) localStorage.removeItem(ULTIMA)
+    localStorage.removeItem(chave(id));
+    if (localStorage.getItem(ULTIMA) === id) localStorage.removeItem(ULTIMA);
   } catch {
     /* idem */
   }
@@ -60,17 +71,22 @@ export function clearWizard(id: string) {
 
 export function wizardEmAndamento(): WizardState | null {
   try {
-    const id = localStorage.getItem(ULTIMA)
-    return id ? loadWizard(id) : null
+    const id = localStorage.getItem(ULTIMA);
+    return id ? loadWizard(id) : null;
   } catch {
-    return null
+    return null;
   }
 }
 
 /** Mesma regra do backend: data + título minúsculo, sem acento, com hífens. */
 export const reuniaoIdDe = (data: string, titulo: string) =>
-  `${data}-${titulo.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`
+  `${data}-${titulo
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")}`;
 
 /** Etapa mais avançada já alcançada, para "Continuar reunião". */
 export const rotaAtual = (s: WizardState) =>
-  `/reunioes/${s.reuniaoId}/${s.issues ? 'issues' : s.plano?.status === 'aprovado' ? 'issues' : s.plano ? 'plano' : 'grill'}`
+  `/reunioes/${s.reuniaoId}/${s.issues ? "issues" : s.plano?.status === "aprovado" ? "issues" : s.plano ? "plano" : "grill"}`;
