@@ -11,6 +11,7 @@ import {
   loadWizard,
   reuniaoIdDe,
   saveWizard,
+  semFrontmatter,
   rotaAtual,
   wizardEmAndamento,
   type WizardState,
@@ -36,9 +37,17 @@ const mascaraData = (v: string) =>
     .slice(0, 8)
     .replace(/^(\d{2})(\d)/, "$1/$2")
     .replace(/^(\d{2}\/\d{2})(\d)/, "$1/$2");
-const semFrontmatter = (md: string) => md.replace(/^---\n[\s\S]*?\n---\n*/, "");
 const campo = (erro: unknown) =>
-  `w-full rounded-ctl border bg-superficie px-3 py-2 ${erro ? "border-erro ring-1 ring-erro" : "border-borda"}`;
+  `w-full rounded-ctl border bg-superficie px-3 py-2.5 transition focus:outline-none focus:ring-2 ${erro ? "border-erro ring-1 ring-erro focus:ring-erro/40" : "border-borda hover:border-roxo/50 focus:border-roxo focus:ring-roxo/25"}`;
+const rotuloCls = "mb-1 block text-sm font-semibold";
+const dica = "mt-1 text-xs text-suave";
+const cartao = "space-y-5 rounded-card bg-superficie p-5 shadow-card";
+const Erro = ({ id, msg }: { id: string; msg: unknown }) =>
+  msg ? (
+    <p id={id} className="mt-1 text-sm font-medium text-erro">
+      ⚠ {String(msg)}
+    </p>
+  ) : null;
 const Obrigatorio = () => (
   <span aria-hidden className="text-erro" title="Obrigatório">
     *
@@ -155,7 +164,7 @@ export default function NovaReuniao() {
 
   if (criada)
     return (
-      <div className="max-w-3xl">
+      <div>
         <Stepper atual={0} />
         <h1 className="mb-4 text-2xl font-bold">Ata gerada</h1>
         <p
@@ -177,7 +186,7 @@ export default function NovaReuniao() {
     );
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <Stepper atual={0} />
       <h1 className="mb-4 text-2xl font-bold">Nova reunião</h1>
 
@@ -207,199 +216,254 @@ export default function NovaReuniao() {
         </div>
       )}
 
-      <p className="mb-4 text-sm text-suave">
+      <p className="mb-6 text-suave">
+        Descreva o que foi discutido. A IA monta a ata e, em seguida, faz
+        perguntas para fechar o plano de ação.{" "}
         <span aria-hidden className="text-erro">
           *
         </span>{" "}
-        campo obrigatório
+        = obrigatório
       </p>
 
       <form
         onSubmit={enviar}
         noValidate
-        className="space-y-5"
+        className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"
         aria-busy={gerar.isPending}
       >
-        {falhas.length > 0 && (
+        <div className="space-y-6">
+          {falhas.length > 0 && (
+            <div
+              ref={resumo}
+              tabIndex={-1}
+              role="alert"
+              className="rounded-card border-l-4 border-erro bg-erro/10 p-4"
+            >
+              <p className="font-semibold text-erro">
+                ⚠ Corrija{" "}
+                {falhas.length === 1
+                  ? "o ponto abaixo"
+                  : `os ${falhas.length} pontos abaixo`}{" "}
+                para gerar a ata:
+              </p>
+              <ul className="mt-1 list-disc pl-5">
+                {falhas.map((k) => (
+                  <li key={k}>
+                    <button
+                      type="button"
+                      className="text-left"
+                      onClick={() => document.getElementById(ids[k])?.focus()}
+                    >
+                      {erros[k]}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <section className={cartao} aria-labelledby="s-dados">
+            <h2 id="s-dados" className="text-lg font-semibold">
+              1. Dados da reunião
+            </h2>
+            <div className="grid gap-5 sm:grid-cols-[1fr_11rem]">
+              <div>
+                <label htmlFor="titulo" className={rotuloCls}>
+                  Título <Obrigatorio />
+                </label>
+                <input
+                  id="titulo"
+                  autoFocus
+                  placeholder="Ex.: Retrospectiva da sprint 12"
+                  className={campo(erro("titulo"))}
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  aria-describedby={erro("titulo") ? "e-titulo" : undefined}
+                  aria-invalid={!!erro("titulo")}
+                />
+                <Erro id="e-titulo" msg={erro("titulo")} />
+              </div>
+              <div>
+                <label htmlFor="data" className={rotuloCls}>
+                  Data <Obrigatorio />
+                </label>
+                <input
+                  id="data"
+                  inputMode="numeric"
+                  placeholder="dd/mm/aaaa"
+                  maxLength={10}
+                  className={campo(erro("data"))}
+                  value={dataBr}
+                  onChange={(e) => setDataBr(mascaraData(e.target.value))}
+                  aria-describedby={erro("data") ? "e-data" : undefined}
+                  aria-invalid={!!erro("data")}
+                />
+                <Erro id="e-data" msg={erro("data")} />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="participante" className={rotuloCls}>
+                Participantes{" "}
+                <span className="font-normal text-suave">(opcional)</span>
+              </label>
+              <MultiSelect
+                id="participante"
+                opcoes={(cfg.data?.membros ?? []).map((m) => m.nome)}
+                valor={participantes}
+                onChange={setParticipantes}
+                placeholder="Selecione ou busque pelo nome"
+              />
+              <p className={dica}>
+                Quem não está na lista: digite o nome e tecle Enter.
+              </p>
+            </div>
+          </section>
+
+          <section className={cartao} aria-labelledby="s-conteudo">
+            <h2 id="s-conteudo" className="text-lg font-semibold">
+              2. O que foi discutido
+            </h2>
+            <div>
+              <label htmlFor="acompanhamento" className={rotuloCls}>
+                Acompanhamento <Obrigatorio />
+              </label>
+              <textarea
+                id="acompanhamento"
+                rows={4}
+                placeholder="Ex.: Das 5 ações da reunião anterior, 3 foram concluídas e 2 seguem em andamento…"
+                className={campo(erro("acompanhamento"))}
+                value={acompanhamento}
+                onChange={(e) => setAcompanhamento(e.target.value)}
+                aria-describedby={`d-acomp${erro("acompanhamento") ? " e-acomp" : ""}`}
+                aria-invalid={!!erro("acompanhamento")}
+              />
+              <p id="d-acomp" className={dica}>
+                Como andam os itens da última reunião.
+              </p>
+              <Erro id="e-acomp" msg={erro("acompanhamento")} />
+            </div>
+            <div>
+              <label htmlFor="problemas" className={rotuloCls}>
+                Problemas levantados <Obrigatorio />
+              </label>
+              <textarea
+                id="problemas"
+                rows={6}
+                className={campo(erro("problemas"))}
+                value={problemas}
+                onChange={(e) => setProblemas(e.target.value)}
+                onKeyDown={teclaProblemas}
+                aria-describedby={`d-prob${erro("problemas") ? " e-prob" : ""}`}
+                aria-invalid={!!erro("problemas")}
+              />
+              <div className="mt-1 flex flex-wrap justify-between gap-2">
+                <p id="d-prob" className="text-xs text-suave">
+                  Um por linha. Enter cria o próximo bullet; Shift+Enter
+                  quebra a linha.
+                </p>
+                <span className="rounded-full bg-amarelo px-2 py-0.5 text-xs font-medium text-roxo-escuro">
+                  {problemasOk.length}{" "}
+                  {problemasOk.length === 1 ? "problema" : "problemas"}
+                </span>
+              </div>
+              <Erro id="e-prob" msg={erro("problemas")} />
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-6">
           <div
-            ref={resumo}
+            ref={falhas.length ? undefined : resumo}
             tabIndex={-1}
-            role="alert"
-            className="rounded-card border-l-4 border-erro bg-erro/10 p-4"
+            role={erro("chars") ? "alert" : undefined}
+            className={cartao}
           >
-            <p className="font-semibold text-erro">
-              ⚠ Corrija{" "}
-              {falhas.length === 1
-                ? "o ponto abaixo"
-                : `os ${falhas.length} pontos abaixo`}{" "}
-              para gerar a ata:
-            </p>
-            <ul className="mt-1 list-disc pl-5">
-              {falhas.map((k) => (
-                <li key={k}>
-                  <button
-                    type="button"
-                    className="text-left underline"
-                    onClick={() => document.getElementById(ids[k])?.focus()}
+            <h2 className="text-lg font-semibold">Antes de gerar</h2>
+            <ul className="space-y-2 text-sm">
+              {(
+                [
+                  ["titulo", "Título informado"],
+                  ["data", "Data válida"],
+                  ["acompanhamento", "Acompanhamento preenchido"],
+                  ["problemas", "Ao menos 1 problema"],
+                ] as const
+              ).map(([k, t]) => {
+                const ok = !erros[k];
+                return (
+                  <li
+                    key={k}
+                    className={`flex items-center gap-2 ${ok ? "text-sucesso" : erro(k) ? "font-medium text-erro" : "text-suave"}`}
                   >
-                    {erros[k]}
-                  </button>
-                </li>
-              ))}
+                    <span aria-hidden className="w-4 text-center">
+                      {ok ? "✓" : erro(k) ? "✕" : "○"}
+                    </span>
+                    {t}
+                  </li>
+                );
+              })}
             </ul>
-          </div>
-        )}
-        <div>
-          <label htmlFor="titulo" className="mb-1 block font-medium">
-            Título <Obrigatorio />
-          </label>
-          <input
-            id="titulo"
-            className={campo(erro("titulo"))}
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            aria-describedby={erro("titulo") ? "e-titulo" : undefined}
-            aria-invalid={!!erro("titulo")}
-          />
-          {erro("titulo") && (
-            <p id="e-titulo" className="mt-1 text-sm font-medium text-erro">
-              ⚠ {erro("titulo")}
-            </p>
-          )}
-        </div>
+            <div>
+              <div className="mb-1 flex justify-between text-sm">
+                <span className={erro("chars") ? "font-medium text-erro" : ""}>
+                  Texto da reunião
+                </span>
+                <span className="text-suave">
+                  {chars} / {MIN_CHARS}
+                </span>
+              </div>
+              <div
+                className="h-2 overflow-hidden rounded-full bg-borda"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={MIN_CHARS}
+                aria-valuenow={Math.min(chars, MIN_CHARS)}
+              >
+                <div
+                  className={`h-full transition-all ${chars >= MIN_CHARS ? "bg-sucesso" : erro("chars") ? "bg-erro" : "bg-roxo"}`}
+                  style={{ width: `${Math.min(100, (chars / MIN_CHARS) * 100)}%` }}
+                />
+              </div>
+              <p
+                className={`mt-1 text-xs ${erro("chars") ? "text-erro" : "text-suave"}`}
+              >
+                {erro("chars")
+                  ? erros.chars
+                  : "Mínimo somando acompanhamento e problemas."}
+              </p>
+            </div>
 
-        <div>
-          <label htmlFor="data" className="mb-1 block font-medium">
-            Data <Obrigatorio />
-          </label>
-          <input
-            id="data"
-            inputMode="numeric"
-            placeholder="dd/mm/aaaa"
-            maxLength={10}
-            className={campo(erro("data"))}
-            value={dataBr}
-            onChange={(e) => setDataBr(mascaraData(e.target.value))}
-            aria-describedby={erro("data") ? "e-data" : undefined}
-            aria-invalid={!!erro("data")}
-          />
-          {erro("data") && (
-            <p id="e-data" className="mt-1 text-sm font-medium text-erro">
-              ⚠ {erro("data")}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="participante" className="mb-1 block font-medium">
-            Participantes (opcional)
-          </label>
-          <MultiSelect
-            id="participante"
-            opcoes={(cfg.data?.membros ?? []).map((m) => m.nome)}
-            valor={participantes}
-            onChange={setParticipantes}
-            placeholder="Selecione ou busque pelo nome"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="acompanhamento" className="mb-1 block font-medium">
-            Acompanhamento <Obrigatorio />
-          </label>
-          <textarea
-            id="acompanhamento"
-            rows={4}
-            className={campo(erro("acompanhamento"))}
-            value={acompanhamento}
-            onChange={(e) => setAcompanhamento(e.target.value)}
-            aria-describedby={erro("acompanhamento") ? "e-acomp" : undefined}
-            aria-invalid={!!erro("acompanhamento")}
-          />
-          {erro("acompanhamento") && (
-            <p id="e-acomp" className="mt-1 text-sm font-medium text-erro">
-              ⚠ {erro("acompanhamento")}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="problemas" className="mb-1 block font-medium">
-            Problemas (um por bullet) <Obrigatorio />
-          </label>
-          <textarea
-            id="problemas"
-            rows={6}
-            className={campo(erro("problemas"))}
-            value={problemas}
-            onChange={(e) => setProblemas(e.target.value)}
-            onKeyDown={teclaProblemas}
-            aria-describedby={erro("problemas") ? "e-prob" : undefined}
-            aria-invalid={!!erro("problemas")}
-          />
-          {erro("problemas") && (
-            <p id="e-prob" className="mt-1 text-sm font-medium text-erro">
-              ⚠ {erro("problemas")}
-            </p>
-          )}
-        </div>
-
-        <div
-          ref={falhas.length ? undefined : resumo}
-          tabIndex={-1}
-          role={erro("chars") ? "alert" : undefined}
-          className={`flex items-center gap-3 rounded-card p-4 ${
-            erro("chars")
-              ? "border-l-4 border-erro bg-erro/10"
-              : "bg-superficie shadow-card"
-          }`}
-        >
-          <span
-            aria-hidden
-            className={`text-xl ${erro("chars") ? "text-erro" : "text-suave"}`}
-          >
-            {erro("chars") ? "⚠" : "✎"}
-          </span>
-          <div>
-            <p className={`font-semibold ${erro("chars") ? "text-erro" : ""}`}>
-              {chars} / {MIN_CHARS} caracteres
-            </p>
-            <p className="text-sm text-suave">
-              {erro("chars")
-                ? erros.chars
-                : "Mínimo somando acompanhamento e problemas."}
-            </p>
-          </div>
-        </div>
-
-        {gerar.isError && (
-          <div
-            role="alert"
-            className="rounded-card border-l-4 border-erro bg-erro/10 p-4"
-          >
-            <p className="font-semibold text-erro">
-              ⚠ Não foi possível gerar a ata
-            </p>
-            <p>{mensagemErro(gerar.error)}</p>
-            {temDetalhe(gerar.error) && (
-              <details className="text-sm">
-                <summary>Detalhes técnicos</summary>
-                {gerar.error.detalhe}
-              </details>
+            {gerar.isError && (
+              <div
+                role="alert"
+                className="rounded-ctl border-l-4 border-erro bg-erro/10 p-3 text-sm"
+              >
+                <p className="font-semibold text-erro">
+                  ⚠ Não foi possível gerar a ata
+                </p>
+                <p>{mensagemErro(gerar.error)}</p>
+                {temDetalhe(gerar.error) && (
+                  <details>
+                    <summary>Detalhes técnicos</summary>
+                    {gerar.error.detalhe}
+                  </details>
+                )}
+              </div>
             )}
-          </div>
-        )}
-        {gerar.isPending && (
-          <p role="status">Gerando a ata… pode levar até um minuto.</p>
-        )}
+            {gerar.isPending && (
+              <p role="status" className="text-sm">
+                Gerando a ata… pode levar até um minuto.
+              </p>
+            )}
 
-        <button
-          type="submit"
-          disabled={gerar.isPending}
-          className={`${btn} bg-ambar font-semibold text-roxo-escuro`}
-        >
-          {gerar.isPending ? "Gerando…" : "Gerar ata"}
-        </button>
+            <button
+              type="submit"
+              disabled={gerar.isPending}
+              className={`${btn} w-full bg-ambar font-semibold text-roxo-escuro hover:brightness-95`}
+            >
+              {gerar.isPending ? "Gerando…" : "Gerar ata"}
+            </button>
+          </div>
+        </aside>
       </form>
     </div>
   );

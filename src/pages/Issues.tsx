@@ -134,7 +134,7 @@ export default function Issues() {
     )
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <Stepper atual={3} reuniaoId={reuniaoId} />
       <h1 className="mb-4 text-2xl font-bold">Issues</h1>
       <div aria-busy={gerar.isPending}>{corpo}</div>

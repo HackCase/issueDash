@@ -6,6 +6,7 @@ type Tabela = { cabecalho: string[]; linhas: (string | number)[][] }
 
 export default function ChartCard({
   titulo,
+  subtitulo,
   query,
   vazio,
   tabela,
@@ -13,6 +14,7 @@ export default function ChartCard({
   children,
 }: {
   titulo: string
+  subtitulo: string
   query: UseQueryResult<unknown, Error>
   vazio: boolean
   tabela: Tabela
@@ -24,7 +26,7 @@ export default function ChartCard({
   const semBanco = err instanceof ApiError && err.erro === 'sem_banco'
 
   let corpo: ReactNode
-  if (query.isPending) corpo = <div className="h-64 animate-pulse rounded-ctl bg-borda/60" />
+  if (query.isPending) corpo = <div className="min-h-48 flex-1 animate-pulse rounded-ctl bg-borda/60" />
   else if (semBanco) corpo = <p className="py-16 text-center text-suave">Indisponível.</p>
   else if (err)
     corpo = (
@@ -33,7 +35,7 @@ export default function ChartCard({
   else if (vazio) corpo = <p className="py-16 text-center text-suave">Ainda não há dados coletados. Rode o coletor.</p>
   else if (verTabela)
     corpo = (
-      <div className="max-h-64 overflow-auto">
+      <div className="min-h-48 flex-1 overflow-auto">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">{titulo}</caption>
           <thead>
@@ -47,12 +49,15 @@ export default function ChartCard({
         </table>
       </div>
     )
-  else corpo = <div className="h-64" role="img" aria-label={`${titulo}. Use "Ver como tabela" para ler os valores.`}>{children}</div>
+  else corpo = <div className="min-h-48 flex-1" role="img" aria-label={`${titulo}. Use "Ver como tabela" para ler os valores.`}>{children}</div>
 
   return (
-    <section aria-busy={query.isPending} className={`rounded-card bg-superficie p-4 shadow-card ${className}`}>
+    <section aria-busy={query.isPending} className={`flex flex-col rounded-card bg-superficie p-4 shadow-card ${className}`}>
       <div className="mb-3 flex items-start justify-between gap-2">
-        <h2 className="text-base font-semibold">{titulo}</h2>
+        <div>
+          <h2 className="text-base font-semibold">{titulo}</h2>
+          <p className="text-sm text-suave">{subtitulo}</p>
+        </div>
         {query.isSuccess && !vazio && (
           <button onClick={() => setVerTabela((v) => !v)} className="shrink-0 text-sm text-roxo underline">
             {verTabela ? 'Ver gráfico' : 'Ver como tabela'}

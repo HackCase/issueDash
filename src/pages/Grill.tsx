@@ -175,7 +175,11 @@ function Formulario({
           <button
             disabled={pendente || !todasAceitaveis}
             onClick={() =>
-              onEnviar({ respostas: digitadas, aceitar_recomendacoes: true })
+              setTxt(
+                Object.fromEntries(
+                  perguntas.map((p) => [p.id, resp(p) || p.recomendacao || ""]),
+                ),
+              )
             }
             className={`${btn} border border-roxo text-roxo`}
           >
@@ -334,7 +338,7 @@ export default function Grill() {
     );
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <Stepper atual={1} reuniaoId={reuniaoId} />
       <h1 ref={titulo} tabIndex={-1} className="mb-1 text-2xl font-bold">
         Grill-me
