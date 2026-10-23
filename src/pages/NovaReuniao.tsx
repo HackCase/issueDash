@@ -1,9 +1,11 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import Markdown from "react-markdown";
 import { Link, useNavigate } from "react-router-dom";
+import MultiSelect from "../components/MultiSelect";
 import Stepper from "../components/Stepper";
-import { mensagemErro, post, temDetalhe } from "../lib/api";
+import { api, mensagemErro, post, temDetalhe } from "../lib/api";
+import type { Config } from "../lib/plano";
 import {
   clearWizard,
   loadWizard,
@@ -23,15 +25,24 @@ const paraBr = (iso: string) => iso.split("-").reverse().join("/");
 const paraIso = (br: string) => {
   const [d, m, a] = br.split("/");
   const iso = `${a}-${m}-${d}`;
-  return /^\d{2}\/\d{2}\/\d{4}$/.test(br) && (Date.parse(iso) ? new Date(iso).toISOString() : "").startsWith(iso) ? iso : "";
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(br) &&
+    (Date.parse(iso) ? new Date(iso).toISOString() : "").startsWith(iso)
+    ? iso
+    : "";
 };
 const mascaraData = (v: string) =>
-  v.replace(/\D/g, "").slice(0, 8).replace(/^(\d{2})(\d)/, "$1/$2").replace(/^(\d{2}\/\d{2})(\d)/, "$1/$2");
+  v
+    .replace(/\D/g, "")
+    .slice(0, 8)
+    .replace(/^(\d{2})(\d)/, "$1/$2")
+    .replace(/^(\d{2}\/\d{2})(\d)/, "$1/$2");
 const semFrontmatter = (md: string) => md.replace(/^---\n[\s\S]*?\n---\n*/, "");
 const campo = (erro: unknown) =>
-  `w-full rounded-ctl border bg-superficie px-3 py-2 ${erro ? 'border-erro ring-1 ring-erro' : 'border-borda'}`;
+  `w-full rounded-ctl border bg-superficie px-3 py-2 ${erro ? "border-erro ring-1 ring-erro" : "border-borda"}`;
 const Obrigatorio = () => (
-  <span aria-hidden className="text-erro" title="Obrigatório">*</span>
+  <span aria-hidden className="text-erro" title="Obrigatório">
+    *
+  </span>
 );
 const btn = "rounded-ctl px-4 py-2 disabled:opacity-60";
 
@@ -42,7 +53,12 @@ export default function NovaReuniao() {
   const [dataBr, setDataBr] = useState(() => paraBr(hoje()));
   const data = paraIso(dataBr);
   const [participantes, setParticipantes] = useState<string[]>([]);
-  const [novoNome, setNovoNome] = useState("");
+  const cfg = useQuery({
+    queryKey: ["config"],
+    queryFn: () => api<Config>("/config"),
+    staleTime: Infinity,
+    retry: false,
+  });
   const [acompanhamento, setAcompanhamento] = useState("");
   const [problemas, setProblemas] = useState("- ");
   const [tentou, setTentou] = useState(false);
@@ -119,19 +135,6 @@ export default function NovaReuniao() {
     gerar.mutate();
   }
 
-  function addNome() {
-    const n = novoNome.trim();
-    if (n && !participantes.includes(n))
-      setParticipantes([...participantes, n]);
-    setNovoNome("");
-  }
-  function teclaNome(e: KeyboardEvent) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addNome();
-    }
-  }
-  // Enter continua a lista com um novo bullet
   function teclaProblemas(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key !== "Enter" || e.shiftKey) return;
     e.preventDefault();
@@ -146,7 +149,9 @@ export default function NovaReuniao() {
   useEffect(() => {
     if (tentativas) resumo.current?.focus();
   }, [tentativas]);
-  const falhas = (Object.keys(erros) as (keyof typeof erros)[]).filter((k) => k !== "chars" && erro(k));
+  const falhas = (Object.keys(erros) as (keyof typeof erros)[]).filter(
+    (k) => k !== "chars" && erro(k),
+  );
 
   if (criada)
     return (
@@ -203,7 +208,10 @@ export default function NovaReuniao() {
       )}
 
       <p className="mb-4 text-sm text-suave">
-        <span aria-hidden className="text-erro">*</span> campo obrigatório
+        <span aria-hidden className="text-erro">
+          *
+        </span>{" "}
+        campo obrigatório
       </p>
 
       <form
@@ -220,7 +228,11 @@ export default function NovaReuniao() {
             className="rounded-card border-l-4 border-erro bg-erro/10 p-4"
           >
             <p className="font-semibold text-erro">
-              ⚠ Corrija {falhas.length === 1 ? "o ponto abaixo" : `os ${falhas.length} pontos abaixo`} para gerar a ata:
+              ⚠ Corrija{" "}
+              {falhas.length === 1
+                ? "o ponto abaixo"
+                : `os ${falhas.length} pontos abaixo`}{" "}
+              para gerar a ata:
             </p>
             <ul className="mt-1 list-disc pl-5">
               {falhas.map((k) => (
@@ -243,10 +255,10 @@ export default function NovaReuniao() {
           </label>
           <input
             id="titulo"
-            className={campo(erro('titulo'))}
+            className={campo(erro("titulo"))}
             value={titulo}
             onChange={(e) => setTitulo(e.target.value)}
-            aria-describedby={erro('titulo') ? 'e-titulo' : undefined}
+            aria-describedby={erro("titulo") ? "e-titulo" : undefined}
             aria-invalid={!!erro("titulo")}
           />
           {erro("titulo") && (
@@ -265,10 +277,10 @@ export default function NovaReuniao() {
             inputMode="numeric"
             placeholder="dd/mm/aaaa"
             maxLength={10}
-            className={campo(erro('data'))}
+            className={campo(erro("data"))}
             value={dataBr}
             onChange={(e) => setDataBr(mascaraData(e.target.value))}
-            aria-describedby={erro('data') ? 'e-data' : undefined}
+            aria-describedby={erro("data") ? "e-data" : undefined}
             aria-invalid={!!erro("data")}
           />
           {erro("data") && (
@@ -282,34 +294,13 @@ export default function NovaReuniao() {
           <label htmlFor="participante" className="mb-1 block font-medium">
             Participantes (opcional)
           </label>
-          <input
+          <MultiSelect
             id="participante"
-            className={campo(false)}
-            value={novoNome}
-            placeholder="Nome e Enter"
-            onChange={(e) => setNovoNome(e.target.value)}
-            onKeyDown={teclaNome}
-            onBlur={addNome}
+            opcoes={(cfg.data?.membros ?? []).map((m) => m.nome)}
+            valor={participantes}
+            onChange={setParticipantes}
+            placeholder="Selecione ou busque pelo nome"
           />
-          <ul className="mt-2 flex flex-wrap gap-2">
-            {participantes.map((n) => (
-              <li
-                key={n}
-                className="flex items-center gap-1 rounded-full bg-borda px-3 py-1 text-sm"
-              >
-                {n}
-                <button
-                  type="button"
-                  aria-label={`Remover ${n}`}
-                  onClick={() =>
-                    setParticipantes(participantes.filter((x) => x !== n))
-                  }
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
         </div>
 
         <div>
@@ -319,10 +310,10 @@ export default function NovaReuniao() {
           <textarea
             id="acompanhamento"
             rows={4}
-            className={campo(erro('acompanhamento'))}
+            className={campo(erro("acompanhamento"))}
             value={acompanhamento}
             onChange={(e) => setAcompanhamento(e.target.value)}
-            aria-describedby={erro('acompanhamento') ? 'e-acomp' : undefined}
+            aria-describedby={erro("acompanhamento") ? "e-acomp" : undefined}
             aria-invalid={!!erro("acompanhamento")}
           />
           {erro("acompanhamento") && (
@@ -339,11 +330,11 @@ export default function NovaReuniao() {
           <textarea
             id="problemas"
             rows={6}
-            className={campo(erro('problemas'))}
+            className={campo(erro("problemas"))}
             value={problemas}
             onChange={(e) => setProblemas(e.target.value)}
             onKeyDown={teclaProblemas}
-            aria-describedby={erro('problemas') ? 'e-prob' : undefined}
+            aria-describedby={erro("problemas") ? "e-prob" : undefined}
             aria-invalid={!!erro("problemas")}
           />
           {erro("problemas") && (
@@ -363,7 +354,10 @@ export default function NovaReuniao() {
               : "bg-superficie shadow-card"
           }`}
         >
-          <span aria-hidden className={`text-xl ${erro("chars") ? "text-erro" : "text-suave"}`}>
+          <span
+            aria-hidden
+            className={`text-xl ${erro("chars") ? "text-erro" : "text-suave"}`}
+          >
             {erro("chars") ? "⚠" : "✎"}
           </span>
           <div>
@@ -371,14 +365,21 @@ export default function NovaReuniao() {
               {chars} / {MIN_CHARS} caracteres
             </p>
             <p className="text-sm text-suave">
-              {erro("chars") ? erros.chars : "Mínimo somando acompanhamento e problemas."}
+              {erro("chars")
+                ? erros.chars
+                : "Mínimo somando acompanhamento e problemas."}
             </p>
           </div>
         </div>
 
         {gerar.isError && (
-          <div role="alert" className="rounded-card border-l-4 border-erro bg-erro/10 p-4">
-            <p className="font-semibold text-erro">⚠ Não foi possível gerar a ata</p>
+          <div
+            role="alert"
+            className="rounded-card border-l-4 border-erro bg-erro/10 p-4"
+          >
+            <p className="font-semibold text-erro">
+              ⚠ Não foi possível gerar a ata
+            </p>
             <p>{mensagemErro(gerar.error)}</p>
             {temDetalhe(gerar.error) && (
               <details className="text-sm">
