@@ -21,14 +21,14 @@ Dashboard                      Nova reunião ──► Ata ──► Grill ─�
                                                         responde)  e aprova)  no GitHub)
 ```
 
-| Rota | Tela | O que faz |
-| --- | --- | --- |
-| `/dashboard` | Dashboard | KPIs e gráficos de issues da organização, com filtro de período |
-| `/reunioes/nova` | Nova reunião | Formulário da reunião; envia para a API gerar a ata |
-| `/reunioes/:id/ata` | Ata | Mostra a ata gerada (resumo, acompanhamento e problemas) em Markdown |
-| `/reunioes/:id/grill` | Grill | Rodadas de perguntas da IA, cada uma com resposta sugerida |
-| `/reunioes/:id/plano` | Plano de ação | Gera, edita e aprova o plano (ações, responsáveis, labels, prazos) |
-| `/reunioes/:id/issues` | Issues | Gera os YAMLs, permite baixá-los e cria as issues no GitHub |
+| Rota                   | Tela          | O que faz                                                            |
+| ---------------------- | ------------- | -------------------------------------------------------------------- |
+| `/dashboard`           | Dashboard     | KPIs e gráficos de issues da organização, com filtro de período      |
+| `/reunioes/nova`       | Nova reunião  | Formulário da reunião; envia para a API gerar a ata                  |
+| `/reunioes/:id/ata`    | Ata           | Mostra a ata gerada (resumo, acompanhamento e problemas) em Markdown |
+| `/reunioes/:id/grill`  | Grill         | Rodadas de perguntas da IA, cada uma com resposta sugerida           |
+| `/reunioes/:id/plano`  | Plano de ação | Gera, edita e aprova o plano (ações, responsáveis, labels, prazos)   |
+| `/reunioes/:id/issues` | Issues        | Gera os YAMLs, permite baixá-los e cria as issues no GitHub          |
 
 `/` redireciona para `/dashboard`.
 
@@ -51,13 +51,13 @@ progresso, mas não o que já está na API.
 
 Os dados vêm dos endpoints `/issues/*` da API (coletados do GitHub para o Postgres):
 
-| Gráfico | Endpoint | Para quê |
-| --- | --- | --- |
-| Issues abertas / fechadas / abertas há +90 dias | `/issues/summary` | Panorama do backlog |
-| Tempo de resolução | `/issues/resolution-time` | Mediana e P90 do abrir ao fechar, por semana |
-| Vazão semanal | `/issues/throughput` | Abertas × fechadas; se abrem mais do que fecham, o backlog cresce |
-| Issues por label | `/issues/by-label` | Onde o trabalho se concentra |
-| Envelhecimento do backlog | `/issues/backlog-aging` | Issues abertas por faixa de idade (a de 90+ dias é a mais esquecida) |
+| Gráfico                                         | Endpoint                  | Para quê                                                             |
+| ----------------------------------------------- | ------------------------- | -------------------------------------------------------------------- |
+| Issues abertas / fechadas / abertas há +90 dias | `/issues/summary`         | Panorama do backlog                                                  |
+| Tempo de resolução                              | `/issues/resolution-time` | Mediana e P90 do abrir ao fechar, por semana                         |
+| Vazão semanal                                   | `/issues/throughput`      | Abertas × fechadas; se abrem mais do que fecham, o backlog cresce    |
+| Issues por label                                | `/issues/by-label`        | Onde o trabalho se concentra                                         |
+| Envelhecimento do backlog                       | `/issues/backlog-aging`   | Issues abertas por faixa de idade (a de 90+ dias é a mais esquecida) |
 
 Sem banco configurado na API (`sem_banco`), o dashboard mostra o aviso de métricas indisponíveis e o resto do
 app continua funcionando.
@@ -76,18 +76,18 @@ npm run dev            # http://localhost:5173
 A porta **5173** é fixa (`strictPort`), porque o CORS da API só libera essa origem. Se ela estiver ocupada,
 o Vite falha em vez de subir em outra porta.
 
-| Variável | Padrão | Para quê |
-| --- | --- | --- |
+| Variável       | Padrão                  | Para quê        |
+| -------------- | ----------------------- | --------------- |
 | `VITE_API_URL` | `http://localhost:8000` | URL base da API |
 
 ### Scripts
 
-| Comando | O que faz |
-| --- | --- |
-| `npm run dev` | Servidor de desenvolvimento com HMR |
-| `npm run build` | Checa os tipos (`tsc -b`) e gera `dist/` |
-| `npm run preview` | Serve o `dist/` localmente |
-| `npm run lint` | Roda o `oxlint` |
+| Comando           | O que faz                                |
+| ----------------- | ---------------------------------------- |
+| `npm run dev`     | Servidor de desenvolvimento com HMR      |
+| `npm run build`   | Checa os tipos (`tsc -b`) e gera `dist/` |
+| `npm run preview` | Serve o `dist/` localmente               |
+| `npm run lint`    | Roda o `oxlint`                          |
 
 ## Stack
 
@@ -112,15 +112,8 @@ src/
   pages/        uma por rota (Dashboard, NovaReuniao, Ata, Grill, Plano, Issues)
   components/   Layout, Stepper, AcaoCard, MultiSelect, ChartCard, NaoExiste
   lib/          api (fetch e erros), wizard (localStorage), plano, issue, metrics
-sdd/            spec do frontend, contrato com a API e pendências
 public/         favicon
 ```
-
-## Documentação
-
-- [`sdd/spec.md`](sdd/spec.md): especificação do frontend (escopo, identidade visual, telas, erros).
-- [`sdd/contrato.md`](sdd/contrato.md): contrato com a API.
-- [`sdd/pendencias.md`](sdd/pendencias.md): o que ainda falta, por etapa.
 
 ## Limites conhecidos
 
