@@ -18,6 +18,8 @@ export type GrillSessao = {
 
 export type IssueYaml = { acao_id: string; path: string; conteudo: string };
 
+export type IssueCriada = { acao_id: string; titulo: string; url: string };
+
 export type WizardState = {
   reuniaoId: string;
   ataPath: string;
@@ -27,6 +29,7 @@ export type WizardState = {
   plano: PlanoAcao | null;
   problemas?: string[];
   issues: IssueYaml[] | null;
+  criadas?: IssueCriada[];
 };
 
 const chave = (id: string) => `mega.wizard.${id}`;

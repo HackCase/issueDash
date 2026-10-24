@@ -6,7 +6,7 @@ import NaoExiste from '../components/NaoExiste'
 import Stepper from '../components/Stepper'
 import { ApiError, mensagemErro, post } from '../lib/api'
 import { lerIssue, type IssueView } from '../lib/issue'
-import { clearWizard, loadWizard, patchWizard, type IssueYaml } from '../lib/wizard'
+import { clearWizard, loadWizard, patchWizard, type IssueCriada, type IssueYaml } from '../lib/wizard'
 
 const btn = 'rounded-ctl px-4 py-2 disabled:opacity-60'
 
@@ -90,11 +90,17 @@ export default function Issues() {
   const navigate = useNavigate()
   const [wiz] = useState(() => loadWizard(reuniaoId))
   const [issues, setIssues] = useState<IssueYaml[] | null>(wiz?.issues ?? null)
+  const [criadas, setCriadas] = useState<IssueCriada[] | null>(wiz?.criadas ?? null)
   const iniciou = useRef(false)
+
+  const publicar = useMutation({
+    mutationFn: () => post<IssueCriada[]>(`/reunioes/${reuniaoId}/issues/publicar`),
+    onSuccess: (r) => { setCriadas(r); patchWizard(reuniaoId, { criadas: r }) },
+  })
 
   const gerar = useMutation({
     mutationFn: () => post<IssueYaml[]>(`/reunioes/${reuniaoId}/issues`),
-    onSuccess: (r) => { setIssues(r); patchWizard(reuniaoId, { issues: r }) },
+    onSuccess: (r) => { setIssues(r); setCriadas(null); patchWizard(reuniaoId, { issues: r, criadas: undefined }) },
   })
 
   useEffect(() => {
@@ -121,11 +127,23 @@ export default function Issues() {
         <ul className="space-y-4">
           {issues.map((i) => <IssueCard key={i.acao_id} i={i} />)}
         </ul>
-        <p className="mt-6 rounded-card bg-amarelo p-4 text-roxo-escuro">
-          Os YAMLs estão em <code>out/issues/{reuniaoId}/</code>. A criação no GitHub é feita pelo script <code>create_issues.py</code>.
-          Se a API estiver em <code>DRY_RUN</code>, nada foi commitado no repositório de atas.
-        </p>
+        {criadas && (
+          <div role="status" className="mt-6 rounded-card bg-superficie p-4 shadow-card">
+            <p className="font-semibold text-sucesso">✓ {criadas.length} {criadas.length === 1 ? 'issue criada' : 'issues criadas'} no GitHub</p>
+            <ul className="mt-2 list-disc pl-5">
+              {criadas.map((c) => (
+                <li key={c.acao_id}><a href={c.url} target="_blank" rel="noreferrer" className="text-roxo underline">{c.titulo}</a></li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {publicar.isError && <p role="alert" className="mt-4 text-erro">{mensagemErro(publicar.error)}</p>}
         <div className="mt-6 flex flex-wrap gap-3">
+          {!criadas && (
+            <button onClick={() => publicar.mutate()} disabled={publicar.isPending} className={`${btn} bg-roxo font-semibold text-white`}>
+              {publicar.isPending ? 'Criando no GitHub…' : 'Criar issues no GitHub'}
+            </button>
+          )}
           <button onClick={() => issues.forEach(baixar)} className={`${btn} bg-ambar font-semibold text-roxo-escuro`}>Baixar todos</button>
           <Link to={`/reunioes/${reuniaoId}/plano`} className={`${btn} border border-roxo text-roxo`}>Voltar ao plano</Link>
         </div>
